@@ -58,8 +58,7 @@ func Commander(conn net.Conn) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		buf, _ := reader.ReadString('\n')
-		stuffToSend := append([]byte(buf), "\r\n"...)
-
+		stuffToSend := ParseInput(buf)
 		conn.Write(stuffToSend)
 		fmt.Println("kapu-irc: Sending: ", string(stuffToSend))
 	}

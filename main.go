@@ -19,7 +19,23 @@ func Listener(conn net.Conn) {
 		}
 		fmt.Println("Server reply:", string(buf[:n]))
 		if bytes.Contains(buf, []byte("PING")) {
-			conn.Write([]byte("PONG\r\n"))
+			if bytes.Contains(buf, []byte(":")) {
+				start := 0
+				end := 0
+				for i, c := range buf {
+					if c == ':' {
+						start = i
+					} else if start != 0 && c == '\r' {
+						end = i
+						break
+					}
+				}
+				answer := append([]byte("PONG "), buf[start:end]...)
+				answer = append(answer, []byte("\r\n")...)
+				conn.Write(answer)
+			} else {
+				conn.Write([]byte("PONG\r\n"))
+			}
 			fmt.Println("kapu-irc: sent PONG")
 		}
 

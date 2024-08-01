@@ -5,6 +5,13 @@ import (
 	"os"
 )
 
+type View struct {
+}
+
+func NewView() *View {
+	return &View{}
+}
+
 func RemoveLast(s string) string {
 	if len(s) > 0 {
 		return s[:len(s)-1]
@@ -13,7 +20,7 @@ func RemoveLast(s string) string {
 	}
 }
 
-func GetConnectionInfo() (ipAndPort string, channel string, nick string) {
+func (*View) GetConnectionInfo() (ipAndPort string, channel string, nick string) {
 	fi, err := os.Open("connection_information.txt")
 	if err != nil {
 		panic(err)
@@ -41,4 +48,13 @@ func GetConnectionInfo() (ipAndPort string, channel string, nick string) {
 		panic("Nick is empty")
 	}
 	return
+}
+
+func (*View) GetInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	str, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	return str
 }

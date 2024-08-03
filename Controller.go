@@ -1,15 +1,27 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"strings"
 )
 
 type Controller struct {
-	theView  *View
-	theModel *Model
+	viewInterface  View
+	modelInterface Model
+}
+
+func StartsWithReply(haystack []byte, command []byte) bool {
+	for i, v := range command {
+		if i < len(haystack) {
+			if v != haystack[i] {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *Controller) Listener(conn net.Conn) {
@@ -21,26 +33,7 @@ func (c *Controller) Listener(conn net.Conn) {
 			return
 		}
 		fmt.Println("Server reply:", string(buf[:n]))
-		if bytes.Contains(buf, []byte("PING")) {
-			if bytes.Contains(buf, []byte(":")) {
-				start := 0
-				end := 0
-				for i, c := range buf {
-					if c == ':' {
-						start = i
-					} else if start != 0 && c == '\r' {
-						end = i
-						break
-					}
-				}
-				answer := append([]byte("PONG "), buf[start:end]...)
-				answer = append(answer, []byte("\r\n")...)
-				conn.Write(answer)
-			} else {
-				conn.Write([]byte("PONG\r\n"))
-			}
-			fmt.Println("kapu-irc: sent PONG")
-		}
+		c.modelInterface.ServerReplyParser(buf)
 
 	}
 }
@@ -50,9 +43,7 @@ func (c *Controller) ParseInput(buf string) (stuffToSend []byte) {
 	if strings.Index(buf, "/j") == 0 {
 		buf = strings.Replace(buf, "/j", "JOIN", 1)
 	} else {
-		// TODO: fix it
-		c.theModel.GetChannel()
-		buf = "PRIVMSG " + c.theModel.GetChannel() + " :" + buf
+		buf = "PRIVMSG " + c.modelInterface.GetChannel() + " :" + buf
 	}
 
 	stuffToSend = append([]byte(buf), "\r\n"...)
@@ -60,25 +51,24 @@ func (c *Controller) ParseInput(buf string) (stuffToSend []byte) {
 }
 func (c *Controller) Commander(conn net.Conn) {
 	for {
-		buf := c.theView.GetInput()
+		buf := c.viewInterface.GetInput()
 		stuffToSend := c.ParseInput(buf)
 		conn.Write(stuffToSend)
 		fmt.Println("kapu-irc: Sending: ", string(stuffToSend))
 	}
 }
 
-func NewController() *Controller {
-	v := NewView()
-	m := NewModel()
-	return &Controller{theView: v, theModel: m}
+func NewController(v View, m Model) *Controller {
+	c := &Controller{viewInterface: v, modelInterface: m}
+	c.viewInterface.SetController(c)
+	c.modelInterface.SetController(c)
+	return c
 }
 func (controller Controller) StartProgram() {
 
-	controller.theView.GetConnectionInfo()
+	controller.viewInterface.GetConnectionInfo()
 
-	ipAndPort, channel, nick := controller.theView.GetConnectionInfo()
-
-	controller.theModel.SetChannel(channel)
+	ipAndPort, nick := controller.viewInterface.GetConnectionInfo()
 
 	conn, err := net.Dial("tcp", ipAndPort)
 	if err != nil {

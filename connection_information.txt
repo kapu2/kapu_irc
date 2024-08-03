@@ -1,0 +1,1 @@
+irc.cs.hut.fi:6667	kapu2222

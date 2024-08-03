@@ -17,7 +17,9 @@ func SpliceIsSame[T comparable](a []T, b []T) bool {
 }
 
 func TestParseInput(t *testing.T) {
-	c := NewController()
+	v := NewTerminalView()
+	m := NewStateKeeper()
+	c := NewController(v, m)
 	str := "/j #test-channel"
 	want := "JOIN #test-channel\r\n"
 	got := c.ParseInput(str)
@@ -28,14 +30,12 @@ func TestParseInput(t *testing.T) {
 
 func TestGetConnectionInfo(t *testing.T) {
 
-	view := NewView()
-	ipAndPort, channel, nick := view.GetConnectionInfo()
+	view := NewTerminalView()
+	ipAndPort, nick := view.GetConnectionInfo()
 	if ipAndPort == "" {
 		t.Fatalf("error, ipAndPort empty")
 	}
-	if channel == "" {
-		t.Fatalf("error, channel empty")
-	}
+
 	if nick == "" {
 		t.Fatalf("error, nick empty")
 	}

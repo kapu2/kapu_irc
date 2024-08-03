@@ -1,21 +1,15 @@
 package main
 
-type View interface {
-	GetConnectionInfo() (ipAndPort string, nick string)
-	GetInput() string
-	SetController(ci ControllerInterface)
-}
-
-/*
 import (
 	"bufio"
 	"os"
 )
 
-type View struct {
+type TerminalView struct {
+	conIf ControllerInterface
 }
 
-func NewView() *TerminalView {
+func NewTerminalView() *TerminalView {
 	return &TerminalView{}
 }
 
@@ -26,8 +20,11 @@ func RemoveLast(s string) string {
 		return s
 	}
 }
+func (tv *TerminalView) SetController(ci ControllerInterface) {
+	tv.conIf = ci
+}
 
-func (*TerminalView) GetConnectionInfo() (ipAndPort string, nick string) {
+func (tv *TerminalView) GetConnectionInfo() (ipAndPort string, nick string) {
 	fi, err := os.Open("connection_information.txt")
 	if err != nil {
 		panic(err)
@@ -60,4 +57,3 @@ func (*TerminalView) GetInput() string {
 	}
 	return str
 }
-*/

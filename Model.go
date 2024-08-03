@@ -1,17 +1,11 @@
 package main
 
-type Model struct {
-	channel string
-}
+type Model interface {
+	SetChannel(channel string)
 
-func NewModel() *Model {
-	return &Model{}
-}
+	GetChannel() string
 
-func (m *Model) SetChannel(channel string) {
-	m.channel = channel
-}
+	SetController(c ControllerInterface)
 
-func (m *Model) GetChannel() string {
-	return m.channel
+	ServerReplyParser(reply []byte)
 }

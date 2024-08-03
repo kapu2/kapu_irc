@@ -1,6 +1,8 @@
 package main
 
 func main() {
-	controller := NewController()
+	terminalView := NewTerminalView()
+	stateKeeper := NewStateKeeper()
+	controller := NewController(terminalView, stateKeeper)
 	controller.StartProgram()
 }

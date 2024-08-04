@@ -20,6 +20,11 @@ func RemoveLast(s string) string {
 		return s
 	}
 }
+
+func (tv *TerminalView) StartView() {
+	go tv.GetInput()
+}
+
 func (tv *TerminalView) SetController(ci ControllerInterface) {
 	tv.conIf = ci
 }
@@ -49,11 +54,15 @@ func (tv *TerminalView) GetConnectionInfo() (ipAndPort string, nick string) {
 	return
 }
 
-func (*TerminalView) GetInput() string {
+func (tv *TerminalView) GetInput() {
 	reader := bufio.NewReader(os.Stdin)
-	str, err := reader.ReadString('\n')
-	if err != nil {
-		panic(err)
+	var str string
+	var err error
+	for {
+		str, err = reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		tv.conIf.SendCommand([]byte(str))
 	}
-	return str
 }

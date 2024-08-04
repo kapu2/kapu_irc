@@ -9,6 +9,7 @@ import (
 type Controller struct {
 	viewInterface  View
 	modelInterface Model
+	messagesToSend chan []byte
 }
 
 func StartsWithReply(haystack []byte, command []byte) bool {
@@ -34,7 +35,6 @@ func (c *Controller) Listener(conn net.Conn) {
 		}
 		fmt.Println("Server reply:", string(buf[:n]))
 		c.modelInterface.ServerReplyParser(buf)
-
 	}
 }
 
@@ -50,21 +50,20 @@ func (c *Controller) ParseInput(buf string) (stuffToSend []byte) {
 	return
 }
 func (c *Controller) Commander(conn net.Conn) {
-	for {
-		buf := c.viewInterface.GetInput()
-		stuffToSend := c.ParseInput(buf)
+	for buf := range c.messagesToSend {
+		stuffToSend := c.ParseInput(string(buf))
 		conn.Write(stuffToSend)
 		fmt.Println("kapu-irc: Sending: ", string(stuffToSend))
 	}
 }
 
 func NewController(v View, m Model) *Controller {
-	c := &Controller{viewInterface: v, modelInterface: m}
+	c := &Controller{viewInterface: v, modelInterface: m, messagesToSend: make(chan []byte)}
 	c.viewInterface.SetController(c)
 	c.modelInterface.SetController(c)
 	return c
 }
-func (controller Controller) StartProgram() {
+func (controller *Controller) StartProgram() {
 
 	controller.viewInterface.GetConnectionInfo()
 
@@ -80,6 +79,12 @@ func (controller Controller) StartProgram() {
 	nickStr := "NICK " + nick + "\r\n"
 	conn.Write([]byte(nickStr))
 	conn.Write([]byte("USER d * 0 :What is this even\r\n"))
+
+	controller.viewInterface.StartView()
 	go controller.Commander(conn)
 	controller.Listener(conn)
+}
+
+func (controller *Controller) SendCommand(msg []byte) {
+	controller.messagesToSend <- msg
 }

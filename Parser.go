@@ -39,7 +39,7 @@ func FindRunePos(line []rune, toFind rune) (int, error) {
 	}
 }
 
-func ParseIRCMessage(line []rune) IRCMessage {
+func ParseIRCMessage(line []rune) (IRCMessage, error) {
 	msg := IRCMessage{}
 	var tags []rune
 	var source []rune
@@ -47,23 +47,32 @@ func ParseIRCMessage(line []rune) IRCMessage {
 
 	if len(line) > 0 && line[0] == '@' {
 		pos, err := FindRunePos(line, ' ')
-		if err != nil {
+		if err == nil {
 			tags = line[0:pos]
-			line = line[pos:]
+			// pos + 1, so we eat away space
+			line = line[pos+1:]
+		} else {
+			return msg, fmt.Errorf("error: malformed IRCMessage: %s", string(line))
 		}
 	}
 	if len(line) > 0 && line[0] == ':' {
 		pos, err := FindRunePos(line, ' ')
-		if err != nil {
+		if err == nil {
 			source = line[0:pos]
-			line = line[pos:]
+			// pos + 1, so we eat away space
+			line = line[pos+1:]
+		} else {
+			return msg, fmt.Errorf("error: malformed IRCMessage: %s", string(line))
 		}
 	}
 	if len(line) > 0 {
 		commandAndParameters = line
 	}
 	if len(tags) > 0 {
-		parsedTags := ParseTags(tags)
+		parsedTags, err := ParseTags(tags)
+		if err != nil {
+			fmt.Print(err)
+		}
 		msg.tags = parsedTags
 	}
 	if len(source) > 0 {
@@ -83,7 +92,7 @@ func ParseIRCMessage(line []rune) IRCMessage {
 	}
 	parameters = parameters[0 : len(parameters)-1] // remove trailing space
 	msg.parameters = ParseParameters(parameters)
-	return msg
+	return msg, nil
 }
 
 func Split[K comparable](toSplit []K, delimiter K) [][]K {
@@ -97,7 +106,7 @@ func Split[K comparable](toSplit []K, delimiter K) [][]K {
 			start = i + 1
 		}
 	}
-	remaining := toSplit[start:i]
+	remaining := toSplit[start : i+1]
 	if len(remaining) > 0 {
 		ret = append(ret, remaining)
 	}
@@ -106,6 +115,7 @@ func Split[K comparable](toSplit []K, delimiter K) [][]K {
 
 func ParseParameters(parameters []rune) [][]rune {
 	prevWhiteSpace := true
+	addFinalParam := false
 	var finalParam []rune
 	for i, v := range parameters {
 		if v == ' ' {
@@ -115,11 +125,23 @@ func ParseParameters(parameters []rune) [][]rune {
 				finalParam = parameters[i+1:]
 				// removing the : and final parameter
 				parameters = parameters[0:i]
+				addFinalParam = true
+				break
+			} else {
+				finalParam = append(finalParam, []rune("")...)
+				// removing the : and final parameter
+				parameters = parameters[0:i]
+				addFinalParam = true
+				break
 			}
+		} else {
+			prevWhiteSpace = false
 		}
 	}
 	parsedParams := Split(parameters, ' ')
-	parsedParams = append(parsedParams, finalParam)
+	if addFinalParam {
+		parsedParams = append(parsedParams, finalParam)
+	}
 	return parsedParams
 }
 
@@ -139,6 +161,7 @@ func ParseSource(source []rune) Source {
 
 func ParseTag(tag []rune) Tag {
 	ret := Tag{}
+
 	if len(tag) > 0 && tag[0] == '+' {
 		ret.clientPrefix = true
 		tag = tag[1:]
@@ -157,11 +180,18 @@ func ParseTag(tag []rune) Tag {
 	}
 	return ret
 }
-func ParseTags(tags []rune) []Tag {
-	tagList := Split(tags, ';')
+func ParseTags(tags []rune) ([]Tag, error) {
 	var ret []Tag
+	if len(tags) > 1 && tags[0] == '@' {
+		// eat away @
+		tags = tags[1:]
+	} else {
+		return ret, fmt.Errorf("error: tag only consisting of @")
+	}
+	tagList := Split(tags, ';')
+
 	for _, v := range tagList {
 		ret = append(ret, ParseTag(v))
 	}
-	return ret
+	return ret, nil
 }

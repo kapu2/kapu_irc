@@ -76,10 +76,14 @@ func TestParseIRCMessageTags(t *testing.T) {
 			t.Fatalf("error, vendor differs, want: %s got: %s", string(want[i].vendor), string(v.vendor))
 		}
 	}
+	got := IRCMessageToString(parsedMsg)
+	if !SpliceIsSame(got, msg) {
+		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
+	}
 }
 
 func TestParseIRCMessageSource(t *testing.T) {
-	msg := []rune(":nickname!user@host tauhkaa parameters")
+	msg := []rune(":nickname!user@host tauhkaa :parameters")
 	parsedMsg, _ := ParseIRCMessage(msg)
 	want := Source{sourceName: []rune("nickname"), user: []rune("user"), host: []rune("host")}
 
@@ -93,7 +97,12 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	msg = []rune(":nickname@host tauhkaa parameters")
+	got := IRCMessageToString(parsedMsg)
+	if !SpliceIsSame(got, msg) {
+		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
+	}
+
+	msg = []rune(":nickname@host tauhkaa :parameters")
 	parsedMsg, _ = ParseIRCMessage(msg)
 	want = Source{sourceName: []rune("nickname"), user: nil, host: []rune("host")}
 	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
@@ -106,7 +115,12 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	msg = []rune(":nickname!user tauhkaa parameters")
+	got = IRCMessageToString(parsedMsg)
+	if !SpliceIsSame(got, msg) {
+		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
+	}
+
+	msg = []rune(":nickname!user tauhkaa :parameters")
 	parsedMsg, _ = ParseIRCMessage(msg)
 	want = Source{sourceName: []rune("nickname"), user: []rune("user"), host: nil}
 	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
@@ -119,7 +133,12 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	msg = []rune(":nickname tauhkaa parameters")
+	got = IRCMessageToString(parsedMsg)
+	if !SpliceIsSame(got, msg) {
+		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
+	}
+
+	msg = []rune(":nickname tauhkaa :parameters")
 	parsedMsg, _ = ParseIRCMessage(msg)
 	want = Source{sourceName: []rune("nickname"), user: nil, host: nil}
 	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
@@ -130,6 +149,11 @@ func TestParseIRCMessageSource(t *testing.T) {
 	}
 	if !SpliceIsSame(want.host, parsedMsg.source.host) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
+	}
+
+	got = IRCMessageToString(parsedMsg)
+	if !SpliceIsSame(got, msg) {
+		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}
 }
 func TestParseIRCMessageCommand(t *testing.T) {

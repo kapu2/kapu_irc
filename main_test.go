@@ -77,6 +77,61 @@ func TestParseIRCMessageTags(t *testing.T) {
 		}
 	}
 }
+
+func TestParseIRCMessageSource(t *testing.T) {
+	msg := []rune(":nickname!user@host tauhkaa parameters")
+	parsedMsg, _ := ParseIRCMessage(msg)
+	want := Source{sourceName: []rune("nickname"), user: []rune("user"), host: []rune("host")}
+
+	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
+		t.Fatalf("error, sourceName differs, want: %s got: %s", string(want.sourceName), string(parsedMsg.source.sourceName))
+	}
+	if !SpliceIsSame(want.user, parsedMsg.source.user) {
+		t.Fatalf("error, user differs, want: %s got: %s", string(want.user), string(parsedMsg.source.user))
+	}
+	if !SpliceIsSame(want.host, parsedMsg.source.host) {
+		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
+	}
+
+	msg = []rune(":nickname@host tauhkaa parameters")
+	parsedMsg, _ = ParseIRCMessage(msg)
+	want = Source{sourceName: []rune("nickname"), user: nil, host: []rune("host")}
+	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
+		t.Fatalf("error, sourceName differs, want: %s got: %s", string(want.sourceName), string(parsedMsg.source.sourceName))
+	}
+	if !SpliceIsSame(want.user, parsedMsg.source.user) {
+		t.Fatalf("error, user differs, want: %s got: %s", string(want.user), string(parsedMsg.source.user))
+	}
+	if !SpliceIsSame(want.host, parsedMsg.source.host) {
+		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
+	}
+
+	msg = []rune(":nickname!user tauhkaa parameters")
+	parsedMsg, _ = ParseIRCMessage(msg)
+	want = Source{sourceName: []rune("nickname"), user: []rune("user"), host: nil}
+	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
+		t.Fatalf("error, sourceName differs, want: %s got: %s", string(want.sourceName), string(parsedMsg.source.sourceName))
+	}
+	if !SpliceIsSame(want.user, parsedMsg.source.user) {
+		t.Fatalf("error, user differs, want: %s got: %s", string(want.user), string(parsedMsg.source.user))
+	}
+	if !SpliceIsSame(want.host, parsedMsg.source.host) {
+		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
+	}
+
+	msg = []rune(":nickname tauhkaa parameters")
+	parsedMsg, _ = ParseIRCMessage(msg)
+	want = Source{sourceName: []rune("nickname"), user: nil, host: nil}
+	if !SpliceIsSame(want.sourceName, parsedMsg.source.sourceName) {
+		t.Fatalf("error, sourceName differs, want: %s got: %s", string(want.sourceName), string(parsedMsg.source.sourceName))
+	}
+	if !SpliceIsSame(want.user, parsedMsg.source.user) {
+		t.Fatalf("error, user differs, want: %s got: %s", string(want.user), string(parsedMsg.source.user))
+	}
+	if !SpliceIsSame(want.host, parsedMsg.source.host) {
+		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
+	}
+}
 func TestParseIRCMessageCommand(t *testing.T) {
 	msg := []rune(":irc.example.com CAP * LIST :")
 	parsedMsg, _ := ParseIRCMessage(msg)

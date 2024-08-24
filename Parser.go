@@ -76,7 +76,10 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 		msg.tags = parsedTags
 	}
 	if len(source) > 0 {
-		parsedSource := ParseSource(source)
+		parsedSource, err := ParseSource(source)
+		if err != nil {
+			fmt.Print(err)
+		}
 		msg.source = parsedSource
 	}
 
@@ -104,6 +107,27 @@ func Split[K comparable](toSplit []K, delimiter K) [][]K {
 		if v == delimiter {
 			ret = append(ret, toSplit[start:i])
 			start = i + 1
+		}
+	}
+	remaining := toSplit[start : i+1]
+	if len(remaining) > 0 {
+		ret = append(ret, remaining)
+	}
+	return ret
+}
+
+func MultiDelimiterSplit[K comparable](toSplit []K, delimiters []K) [][]K {
+	var ret [][]K
+	start := 0
+	i := 0
+	var v K
+	for i, v = range toSplit {
+		for _, delimiter := range delimiters {
+			if v == delimiter {
+				ret = append(ret, toSplit[start:i])
+				start = i + 1
+				break
+			}
 		}
 	}
 	remaining := toSplit[start : i+1]
@@ -145,18 +169,24 @@ func ParseParameters(parameters []rune) [][]rune {
 	return parsedParams
 }
 
-func ParseSource(source []rune) Source {
+func ParseSource(source []rune) (Source, error) {
 	var ret Source
-	sourceNameAndUserHost := Split(source, '!')
-	ret.sourceName = sourceNameAndUserHost[0]
-	if len(sourceNameAndUserHost) == 2 {
-		userAndHost := Split(sourceNameAndUserHost[1], '@')
-		ret.user = userAndHost[0]
-		if len(userAndHost) == 2 {
-			ret.host = userAndHost[1]
-		}
+	if len(source) > 1 && source[0] == ':' {
+		// eat away :
+		source = source[1:]
+	} else {
+		return ret, fmt.Errorf("error: source only consisting of : and nothing else")
 	}
-	return ret
+	sourceNameUserAndHost := Split(source, '@')
+	if len(sourceNameUserAndHost) > 1 {
+		ret.host = sourceNameUserAndHost[1]
+	}
+	sourceNameAndUser := Split(sourceNameUserAndHost[0], '!')
+	ret.sourceName = sourceNameAndUser[0]
+	if len(sourceNameAndUser) == 2 {
+		ret.user = sourceNameAndUser[1]
+	}
+	return ret, nil
 }
 
 func ParseTag(tag []rune) Tag {
@@ -186,7 +216,7 @@ func ParseTags(tags []rune) ([]Tag, error) {
 		// eat away @
 		tags = tags[1:]
 	} else {
-		return ret, fmt.Errorf("error: tag only consisting of @")
+		return ret, fmt.Errorf("error: tag only consisting of @ and nothing else")
 	}
 	tagList := Split(tags, ';')
 

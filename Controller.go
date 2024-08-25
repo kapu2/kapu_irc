@@ -78,7 +78,7 @@ func (controller *Controller) SendCommand(msg []byte) {
 	controller.messagesToSend <- msg
 }
 
-func (controller *Controller) HandleInput(input []rune) {
+func (controller *Controller) HandleInput(input string) {
 	if len(input) > 0 {
 		if input[0] == '/' {
 			controller.HandleInternalCommand(input)
@@ -88,17 +88,17 @@ func (controller *Controller) HandleInput(input []rune) {
 	}
 }
 
-func (controller *Controller) HandleInternalCommand(cmd []rune) {
+func (controller *Controller) HandleInternalCommand(cmd string) {
 	if strings.Index(string(cmd), "/j") == 0 {
-
+		strings.Split(cmd, " ")
 	}
 }
 
-func (controller *Controller) SendChatMessage(chatMsg []rune) {
+func (controller *Controller) SendChatMessage(chatMsg string) {
 	currentChannel := controller.modelInterface.GetChannel()
 	msg := IRCMessage{}
-	msg.command = []rune("PRIVMSG")
-	msg.AddParameter([]rune(currentChannel))
+	msg.command = string("PRIVMSG")
+	msg.AddParameter(string(currentChannel))
 	msg.AddParameter(chatMsg)
 
 	stringMsg := IRCMessageToString(msg)

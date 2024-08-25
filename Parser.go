@@ -2,65 +2,55 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"unicode/utf8"
 )
 
 type Tag struct {
 	clientPrefix bool   // optional
-	vendor       []rune // optional, not sure what it does
-	key          []rune
-	escapedValue []rune // optional
+	vendor       string // optional, not sure what it does
+	key          string
+	escapedValue string // optional
 
 }
 type Source struct {
-	sourceName []rune // nickname or sourcename, only nickname may have user or host fields
-	user       []rune // optional
-	host       []rune // optional
+	sourceName string // nickname or sourcename, only nickname may have user or host fields
+	user       string // optional
+	host       string // optional
 }
 
 type IRCMessage struct {
 	tags       []Tag
 	source     Source
-	command    []rune
-	parameters [][]rune
+	command    string
+	parameters []string
 }
 
-func (irc *IRCMessage) AddParameter(param []rune) {
+func (irc *IRCMessage) AddParameter(param string) {
 	irc.parameters = append(irc.parameters, param)
 }
 
-func FindRunePos(line []rune, toFind rune) int {
-	pos := -1
-	for i, r := range line {
-		if toFind == r {
-			pos = i
-			break
-		}
-	}
-	if pos != -1 {
-		return pos
-	} else {
-		return pos
-	}
-}
-
-func ParseIRCMessage(line []rune) (IRCMessage, error) {
+func ParseIRCMessage(line string) (IRCMessage, error) {
 	msg := IRCMessage{}
-	var tags []rune
-	var source []rune
-	var commandAndParameters []rune
+	var tags string
+	var source string
+	var commandAndParameters string
 	var err error
-	if len(line) > 0 && line[0] == '@' {
-		pos := FindRunePos(line, ' ')
+	if len(line) > 0 && strings.IndexRune(line, '@') == 0 {
+		pos := strings.IndexRune(line, ' ')
 		tags = line[0:pos]
-		// pos + 1, so we eat away space
-		line = line[pos+1:]
+
+		line = line[pos:]
+		// eat away space
+		line = RemoveFirstRuneFromString(line)
 
 	}
-	if len(line) > 0 && line[0] == ':' {
-		pos := FindRunePos(line, ' ')
+	if len(line) > 0 && strings.IndexRune(line, ':') == 0 {
+		pos := strings.IndexRune(line, ' ')
 		source = line[0:pos]
-		// pos + 1, so we eat away space
-		line = line[pos+1:]
+		// eat away space
+		line = line[pos:]
+		line = RemoveFirstRuneFromString(line)
 
 	}
 	if len(line) > 0 {
@@ -83,14 +73,13 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 		msg.source = parsedSource
 	}
 
-	splitCommandAndParameters := Split(commandAndParameters, ' ')
+	splitCommandAndParameters := strings.Split(commandAndParameters, " ")
 	msg.command = splitCommandAndParameters[0]
 
-	var parameters []rune
+	var parameters string
 	for i, v := range splitCommandAndParameters {
 		if i != 0 {
-			parameters = append(parameters, v...)
-			parameters = append(parameters, ' ')
+			parameters += v + " "
 		}
 	}
 	parameters = parameters[0 : len(parameters)-1] // remove trailing space
@@ -98,49 +87,30 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 	return msg, err
 }
 
-func Split[K comparable](toSplit []K, delimiter K) [][]K {
-	var ret [][]K
-	start := 0
-	i := 0
-	var v K
-	for i, v = range toSplit {
-		if v == delimiter {
-			ret = append(ret, toSplit[start:i])
-			start = i + 1
-		}
-	}
-	if len(toSplit) > 0 {
-		remaining := toSplit[start : i+1]
-		if len(remaining) > 0 {
-			ret = append(ret, remaining)
-		}
-	}
-
-	return ret
-}
-
-func ParseParameters(parameters []rune) [][]rune {
+func ParseParameters(parameters string) []string {
 	prevWhiteSpace := true
 	addFinalParam := false
-	var finalParam []rune
+	var finalParam string
 	for i, v := range parameters {
 		if v == ' ' {
 			prevWhiteSpace = true
 		} else if v == ':' && prevWhiteSpace {
-			if i != len(parameters)-1 && i != 0 {
+			// TODO: below is still wrong!
+
+			if i != utf8.RuneCountInString(parameters)-1 && i != 0 {
 				finalParam = parameters[i+1:]
 				// removing the : and final parameter
 				parameters = parameters[0:i]
 				addFinalParam = true
 				break
-			} else if i != len(parameters)-1 {
+			} else if i != utf8.RuneCountInString(parameters)-1 {
 				finalParam = parameters[i+1:]
 				// we only have final parameter, so clear parameters
-				parameters = []rune("")
+				parameters = string("")
 				addFinalParam = true
 				break
 			} else {
-				finalParam = []rune("")
+				finalParam = string("")
 				// removing final lonely :
 				parameters = parameters[0:i]
 				addFinalParam = false
@@ -150,14 +120,14 @@ func ParseParameters(parameters []rune) [][]rune {
 			prevWhiteSpace = false
 		}
 	}
-	parsedParams := Split(parameters, ' ')
+	parsedParams := strings.Split(parameters, " ")
 	if addFinalParam {
 		parsedParams = append(parsedParams, finalParam)
 	}
 	return parsedParams
 }
 
-func ParseSource(source []rune) (Source, error) {
+func ParseSource(source string) (Source, error) {
 	var ret Source
 	if len(source) > 1 && source[0] == ':' {
 		// eat away :
@@ -165,11 +135,11 @@ func ParseSource(source []rune) (Source, error) {
 	} else {
 		return ret, fmt.Errorf("error: source only consisting of : and nothing else")
 	}
-	sourceNameUserAndHost := Split(source, '@')
+	sourceNameUserAndHost := strings.Split(source, "@")
 	if len(sourceNameUserAndHost) > 1 {
 		ret.host = sourceNameUserAndHost[1]
 	}
-	sourceNameAndUser := Split(sourceNameUserAndHost[0], '!')
+	sourceNameAndUser := strings.Split(sourceNameUserAndHost[0], "!")
 	ret.sourceName = sourceNameAndUser[0]
 	if len(sourceNameAndUser) == 2 {
 		ret.user = sourceNameAndUser[1]
@@ -177,21 +147,21 @@ func ParseSource(source []rune) (Source, error) {
 	return ret, nil
 }
 
-func ParseTag(tag []rune) Tag {
+func ParseTag(tag string) Tag {
 	ret := Tag{}
 
 	if len(tag) > 0 && tag[0] == '+' {
 		ret.clientPrefix = true
 		tag = tag[1:]
 	}
-	vendorKeyAndVal := Split(tag, '=')
+	vendorKeyAndVal := strings.Split(tag, "=")
 	vendorKey := vendorKeyAndVal[0]
 	if len(vendorKeyAndVal) == 2 {
 		ret.escapedValue = vendorKeyAndVal[1]
-	} else if FindRunePos(tag, '=') != -1 {
-		ret.escapedValue = []rune("")
+	} else if strings.ContainsRune(tag, '=') {
+		ret.escapedValue = string("")
 	}
-	vendorAndKey := Split(vendorKey, '/')
+	vendorAndKey := strings.Split(vendorKey, "/")
 	if len(vendorAndKey) == 2 {
 		ret.vendor = vendorAndKey[0]
 		ret.key = vendorAndKey[1]
@@ -200,15 +170,15 @@ func ParseTag(tag []rune) Tag {
 	}
 	return ret
 }
-func ParseTags(tags []rune) ([]Tag, error) {
+func ParseTags(tags string) ([]Tag, error) {
 	var ret []Tag
 	if len(tags) > 1 && tags[0] == '@' {
 		// eat away @
-		tags = tags[1:]
+		tags = RemoveFirstRuneFromString(tags)
 	} else {
 		return ret, fmt.Errorf("error: tag only consisting of @ and nothing else")
 	}
-	tagList := Split(tags, ';')
+	tagList := strings.Split(tags, ";")
 
 	for _, v := range tagList {
 		ret = append(ret, ParseTag(v))
@@ -216,83 +186,76 @@ func ParseTags(tags []rune) ([]Tag, error) {
 	return ret, nil
 }
 
-func IRCMessageToString(msg IRCMessage) []rune {
+func IRCMessageToString(msg IRCMessage) string {
 	// in separate function for easy testing
 	ret := IRCMessageToStringWithoutNewline(msg)
-	ret = append(ret, []rune("\r\n")...)
+	ret += "\r\n"
 	return ret
 }
 
-func IRCMessageToStringWithoutNewline(msg IRCMessage) []rune {
-	var ret []rune
+func IRCMessageToStringWithoutNewline(msg IRCMessage) string {
+	var ret string
 	tags := TagsToString(msg.tags)
 	source := SourceToString(msg.source)
 	command := msg.command
 	params := ParametersToString(msg.parameters)
-	ret = append(ret, tags...)
-	ret = append(ret, source...)
-	ret = append(ret, command...)
-	ret = append(ret, []rune(" ")...)
-	ret = append(ret, params...)
+	ret += tags + source + command + " " + params
+
 	return ret
 }
 
-func TagsToString(tags []Tag) []rune {
-	var ret []rune
+func TagsToString(tags []Tag) string {
+	var ret string
 	if len(tags) == 0 {
 		return ret
 	}
-	ret = append(ret, []rune("@")...)
+	ret += "@"
 	for i, tag := range tags {
 		if i != 0 {
-			ret = append(ret, []rune(";")...)
+			ret += ";"
 		}
 		if tag.clientPrefix {
-			ret = append(ret, []rune("+")...)
+			ret += "+"
 		}
-		if tag.vendor != nil {
-			ret = append(ret, tag.vendor...)
-			ret = append(ret, []rune("/")...)
+		if tag.vendor != "" {
+			ret += tag.vendor + "/"
 		}
-		ret = append(ret, tag.key...)
-		if tag.escapedValue != nil {
-			ret = append(ret, []rune("=")...)
-			ret = append(ret, tag.escapedValue...)
+		ret += tag.key
+		// Technically value can be empty and still have =, but we will not send = without a value
+		if tag.escapedValue != "" {
+			ret += "=" + tag.escapedValue
 		}
 	}
-	ret = append(ret, []rune(" ")...)
+	ret += " "
 	return ret
 }
 
-func SourceToString(source Source) []rune {
-	var ret []rune
-	if source.sourceName == nil {
+func SourceToString(source Source) string {
+	var ret string
+	if source.sourceName == "" {
 		return ret
 	}
-	ret = append(ret, []rune(":")...)
-	ret = append(ret, source.sourceName...)
-	if source.user != nil {
-		ret = append(ret, []rune("!")...)
-		ret = append(ret, source.user...)
+	ret += ":" + source.sourceName
+	if source.user != "" {
+		ret += "!" + source.user
 	}
-	if source.host != nil {
-		ret = append(ret, []rune("@")...)
-		ret = append(ret, source.host...)
+	if source.host != "" {
+		ret += "@" + source.host
 	}
-	ret = append(ret, []rune(" ")...)
+	ret += " "
 	return ret
 }
 
-func ParametersToString(parameters [][]rune) []rune {
-	var ret []rune
+func ParametersToString(parameters []string) string {
+	var ret string
 	for i, param := range parameters {
 		if i != 0 {
-			ret = append(ret, []rune(" ")...)
+			ret += " "
 		}
 		if i == len(parameters)-1 {
-			ret = append(ret, []rune(":")...)
+			ret += ":"
 		}
-		ret = append(ret, param...)
+		ret += param
 	}
 	return ret
 }

@@ -7,6 +7,7 @@ import (
 
 type TerminalView struct {
 	conIf ControllerInterface
+	modIf Model
 }
 
 func NewTerminalView() *TerminalView {
@@ -63,6 +64,6 @@ func (tv *TerminalView) GetInput() {
 		if err != nil {
 			panic(err)
 		}
-		tv.modelInterface.HandleInput([]byte(str))
+		tv.conIf.HandleInput(string(str))
 	}
 }

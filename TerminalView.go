@@ -63,6 +63,6 @@ func (tv *TerminalView) GetInput() {
 		if err != nil {
 			panic(err)
 		}
-		tv.conIf.SendCommand([]byte(str))
+		tv.modelInterface.HandleInput([]byte(str))
 	}
 }

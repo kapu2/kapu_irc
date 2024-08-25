@@ -76,7 +76,7 @@ func TestParseIRCMessageTags(t *testing.T) {
 			t.Fatalf("error, vendor differs, want: %s got: %s", string(want[i].vendor), string(v.vendor))
 		}
 	}
-	got := IRCMessageToString(parsedMsg)
+	got := IRCMessageToStringWithoutNewline(parsedMsg)
 	if !SpliceIsSame(got, msg) {
 		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}
@@ -97,7 +97,7 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	got := IRCMessageToString(parsedMsg)
+	got := IRCMessageToStringWithoutNewline(parsedMsg)
 	if !SpliceIsSame(got, msg) {
 		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}
@@ -115,7 +115,7 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	got = IRCMessageToString(parsedMsg)
+	got = IRCMessageToStringWithoutNewline(parsedMsg)
 	if !SpliceIsSame(got, msg) {
 		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}
@@ -133,7 +133,7 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	got = IRCMessageToString(parsedMsg)
+	got = IRCMessageToStringWithoutNewline(parsedMsg)
 	if !SpliceIsSame(got, msg) {
 		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}
@@ -151,7 +151,7 @@ func TestParseIRCMessageSource(t *testing.T) {
 		t.Fatalf("error, host differs, want: %s got: %s", string(want.host), string(parsedMsg.source.host))
 	}
 
-	got = IRCMessageToString(parsedMsg)
+	got = IRCMessageToStringWithoutNewline(parsedMsg)
 	if !SpliceIsSame(got, msg) {
 		t.Fatalf("error, parse and unparse failed, want: %s got: %s", string(msg), string(got))
 	}

@@ -24,6 +24,10 @@ type IRCMessage struct {
 	parameters [][]rune
 }
 
+func (irc *IRCMessage) AddParameter(param []rune) {
+	irc.parameters = append(irc.parameters, param)
+}
+
 func FindRunePos(line []rune, toFind rune) int {
 	pos := -1
 	for i, r := range line {
@@ -44,7 +48,7 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 	var tags []rune
 	var source []rune
 	var commandAndParameters []rune
-
+	var err error
 	if len(line) > 0 && line[0] == '@' {
 		pos := FindRunePos(line, ' ')
 		tags = line[0:pos]
@@ -63,14 +67,16 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 		commandAndParameters = line
 	}
 	if len(tags) > 0 {
-		parsedTags, err := ParseTags(tags)
+		var parsedTags []Tag
+		parsedTags, err = ParseTags(tags)
 		if err != nil {
 			fmt.Print(err)
 		}
 		msg.tags = parsedTags
 	}
 	if len(source) > 0 {
-		parsedSource, err := ParseSource(source)
+		var parsedSource Source
+		parsedSource, err = ParseSource(source)
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -89,7 +95,7 @@ func ParseIRCMessage(line []rune) (IRCMessage, error) {
 	}
 	parameters = parameters[0 : len(parameters)-1] // remove trailing space
 	msg.parameters = ParseParameters(parameters)
-	return msg, nil
+	return msg, err
 }
 
 func Split[K comparable](toSplit []K, delimiter K) [][]K {
@@ -110,27 +116,6 @@ func Split[K comparable](toSplit []K, delimiter K) [][]K {
 		}
 	}
 
-	return ret
-}
-
-func MultiDelimiterSplit[K comparable](toSplit []K, delimiters []K) [][]K {
-	var ret [][]K
-	start := 0
-	i := 0
-	var v K
-	for i, v = range toSplit {
-		for _, delimiter := range delimiters {
-			if v == delimiter {
-				ret = append(ret, toSplit[start:i])
-				start = i + 1
-				break
-			}
-		}
-	}
-	remaining := toSplit[start : i+1]
-	if len(remaining) > 0 {
-		ret = append(ret, remaining)
-	}
 	return ret
 }
 
@@ -232,6 +217,13 @@ func ParseTags(tags []rune) ([]Tag, error) {
 }
 
 func IRCMessageToString(msg IRCMessage) []rune {
+	// in separate function for easy testing
+	ret := IRCMessageToStringWithoutNewline(msg)
+	ret = append(ret, []rune("\r\n")...)
+	return ret
+}
+
+func IRCMessageToStringWithoutNewline(msg IRCMessage) []rune {
 	var ret []rune
 	tags := TagsToString(msg.tags)
 	source := SourceToString(msg.source)

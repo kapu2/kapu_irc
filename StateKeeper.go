@@ -6,7 +6,7 @@ import (
 )
 
 type StateKeeper struct {
-	channel string
+	channel []rune
 	conIf   ControllerInterface
 }
 
@@ -18,15 +18,31 @@ func (sk *StateKeeper) SetController(ci ControllerInterface) {
 	sk.conIf = ci
 }
 
-func (sk *StateKeeper) SetChannel(channel string) {
+func (sk *StateKeeper) SetChannel(channel []rune) {
 	sk.channel = channel
 }
 
-func (sk *StateKeeper) GetChannel() string {
+func (sk *StateKeeper) GetChannel() []rune {
 	return sk.channel
 }
 
 func (sk *StateKeeper) ServerReplyParser(reply []byte) {
+	parsedReply, err := ParseIRCMessage([]rune(string(reply)))
+	if err != nil {
+		print(err.Error())
+	}
+	if SpliceIsSame(parsedReply.command, []rune("PING")) {
+		if len(parsedReply.parameters) == 1 {
+			msg := IRCMessage{command: []rune("PONG")}
+			msg.AddParameter(parsedReply.parameters[0])
+			clientReply := IRCMessageToString(msg)
+			sk.conIf.SendCommand([]byte(string(clientReply)))
+		} else {
+			err = fmt.Errorf("error: PING has unexpected amount of parameters expected: 1 got: %d", len(parsedReply.parameters))
+			print(err.Error())
+		}
+	}
+
 	if bytes.Contains(reply, []byte("PING")) {
 		if bytes.Contains(reply, []byte(":")) {
 			start := 0
@@ -58,6 +74,6 @@ func (sk *StateKeeper) ServerReplyParser(reply []byte) {
 				break
 			}
 		}
-		sk.SetChannel(string(reply[start:end]))
+		sk.SetChannel([]rune(string(reply[start:end])))
 	}
 }

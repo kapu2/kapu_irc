@@ -38,22 +38,11 @@ func (c *Controller) Listener(conn net.Conn) {
 	}
 }
 
-func (c *Controller) ParseInput(buf string) (stuffToSend []byte) {
-
-	if strings.Index(buf, "/j") == 0 {
-		buf = strings.Replace(buf, "/j", "JOIN", 1)
-	} else {
-		buf = "PRIVMSG " + c.modelInterface.GetChannel() + " :" + buf
-	}
-
-	stuffToSend = append([]byte(buf), "\r\n"...)
-	return
-}
 func (c *Controller) Commander(conn net.Conn) {
 	for buf := range c.messagesToSend {
-		stuffToSend := c.ParseInput(string(buf))
-		conn.Write(stuffToSend)
-		fmt.Println("kapu-irc: Sending: ", string(stuffToSend))
+		//stuffToSend := c.ParseInput(string(buf))
+		conn.Write(buf)
+		fmt.Println("kapu-irc: Sending: ", string(buf))
 	}
 }
 
@@ -87,4 +76,31 @@ func (controller *Controller) StartProgram() {
 
 func (controller *Controller) SendCommand(msg []byte) {
 	controller.messagesToSend <- msg
+}
+
+func (controller *Controller) HandleInput(input []rune) {
+	if len(input) > 0 {
+		if input[0] == '/' {
+			controller.HandleInternalCommand(input)
+		} else {
+			controller.SendChatMessage(input)
+		}
+	}
+}
+
+func (controller *Controller) HandleInternalCommand(cmd []rune) {
+	if strings.Index(string(cmd), "/j") == 0 {
+
+	}
+}
+
+func (controller *Controller) SendChatMessage(chatMsg []rune) {
+	currentChannel := controller.modelInterface.GetChannel()
+	msg := IRCMessage{}
+	msg.command = []rune("PRIVMSG")
+	msg.AddParameter([]rune(currentChannel))
+	msg.AddParameter(chatMsg)
+
+	stringMsg := IRCMessageToString(msg)
+	controller.messagesToSend <- []byte(string(stringMsg))
 }

@@ -40,5 +40,7 @@ func (sk *StateKeeper) ServerReplyParser(reply []byte) {
 			err = fmt.Errorf("error: PING has unexpected amount of parameters expected: 1 got: %d", len(parsedReply.parameters))
 			print(err.Error())
 		}
+	} else if parsedReply.command == "JOIN" {
+		// TODO:
 	}
 }

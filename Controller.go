@@ -40,7 +40,6 @@ func (c *Controller) Listener(conn net.Conn) {
 
 func (c *Controller) Commander(conn net.Conn) {
 	for buf := range c.messagesToSend {
-		//stuffToSend := c.ParseInput(string(buf))
 		conn.Write(buf)
 		fmt.Println("kapu-irc: Sending: ", string(buf))
 	}
@@ -90,17 +89,25 @@ func (controller *Controller) HandleInput(input string) {
 
 func (controller *Controller) HandleInternalCommand(cmd string) {
 	if strings.Index(string(cmd), "/j") == 0 {
-		strings.Split(cmd, " ")
+		cmds := strings.Split(cmd, " ")
+		if len(cmds) == 2 || len(cmds) == 3 {
+			// IRC supports multiple channels and passwords, but we are sticking with one channel and one password(optional)
+			msg := IRCMessage{}
+			msg.command = "JOIN"
+			msg.parameters = cmds[1:]
+			stringMsg := IRCMessageToString(msg)
+			controller.messagesToSend <- []byte(stringMsg)
+		}
 	}
 }
 
 func (controller *Controller) SendChatMessage(chatMsg string) {
 	currentChannel := controller.modelInterface.GetChannel()
 	msg := IRCMessage{}
-	msg.command = string("PRIVMSG")
-	msg.AddParameter(string(currentChannel))
+	msg.command = "PRIVMSG"
+	msg.AddParameter(currentChannel)
 	msg.AddParameter(chatMsg)
 
 	stringMsg := IRCMessageToString(msg)
-	controller.messagesToSend <- []byte(string(stringMsg))
+	controller.messagesToSend <- []byte(stringMsg)
 }

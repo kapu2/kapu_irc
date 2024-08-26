@@ -7,7 +7,6 @@ import (
 
 type TerminalView struct {
 	conIf ControllerInterface
-	modIf Model
 }
 
 func NewTerminalView() *TerminalView {
@@ -64,6 +63,9 @@ func (tv *TerminalView) GetInput() {
 		if err != nil {
 			panic(err)
 		}
-		tv.conIf.HandleInput(string(str))
+		// ignore enter smashing
+		if str != "\n" {
+			tv.conIf.HandleInput(string(str))
+		}
 	}
 }

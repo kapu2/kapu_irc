@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"unicode/utf8"
 )
 
 type Tag struct {
@@ -83,11 +82,11 @@ func ParseIRCMessage(line string) (IRCMessage, error) {
 		}
 	}
 	parameters = parameters[0 : len(parameters)-1] // remove trailing space
-	msg.parameters = ParseParameters(parameters)
+	msg.parameters = ParseParameters([]rune(parameters))
 	return msg, err
 }
 
-func ParseParameters(parameters string) []string {
+func ParseParameters(parameters []rune) []string {
 	prevWhiteSpace := true
 	addFinalParam := false
 	var finalParam string
@@ -95,18 +94,16 @@ func ParseParameters(parameters string) []string {
 		if v == ' ' {
 			prevWhiteSpace = true
 		} else if v == ':' && prevWhiteSpace {
-			// TODO: below is still wrong!
-
-			if i != utf8.RuneCountInString(parameters)-1 && i != 0 {
-				finalParam = parameters[i+1:]
+			if i != len(parameters)-1 && i != 0 {
+				finalParam = string(parameters[i+1:])
 				// removing the : and final parameter
 				parameters = parameters[0:i]
 				addFinalParam = true
 				break
-			} else if i != utf8.RuneCountInString(parameters)-1 {
-				finalParam = parameters[i+1:]
+			} else if i != len(parameters)-1 {
+				finalParam = string(parameters[i+1:])
 				// we only have final parameter, so clear parameters
-				parameters = string("")
+				parameters = []rune("")
 				addFinalParam = true
 				break
 			} else {
@@ -120,7 +117,12 @@ func ParseParameters(parameters string) []string {
 			prevWhiteSpace = false
 		}
 	}
-	parsedParams := strings.Split(parameters, " ")
+
+	var parsedParams []string
+	if len(parameters) != 0 {
+		// trimspace, because we may have one extra space at the end
+		parsedParams = strings.Split(strings.TrimSpace(string(parameters)), " ")
+	}
 	if addFinalParam {
 		parsedParams = append(parsedParams, finalParam)
 	}

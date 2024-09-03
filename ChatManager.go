@@ -8,9 +8,6 @@ const (
 	CHAT_LINES_MAX = int(1024)
 )
 
-type PrivateChat struct {
-}
-
 type ChatManager struct {
 	channels map[string](*ChatChannel)
 	privMsg  map[string](*PrivateChat)
@@ -47,4 +44,23 @@ func (cm *ChatManager) NewPart(channelName string, userName string, reason strin
 
 func (cm *ChatManager) NewTopic(channelName string, topic string) {
 	cm.channels[channelName].SetTopic(topic)
+}
+
+func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
+	for _, target := range targets {
+		channel, ok := cm.channels[target]
+		if ok {
+			channel.AddPrivMsg(msg, source)
+		} else {
+			var pc *PrivateChat
+			pc, ok = cm.privMsg[target]
+			if ok {
+				pc.AddPrivMsg(msg, source)
+			} else {
+				pc = NewPrivateChat(source)
+				// TODO: some check whether its user or channel join/part bug
+				pc.AddPrivMsg(msg, source)
+			}
+		}
+	}
 }

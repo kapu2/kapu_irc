@@ -51,6 +51,12 @@ func (cc *ChatChannel) SetTopic(topic string) {
 	cc.AddChannelMessage(msg)
 }
 
+func (cc *ChatChannel) AddPrivMsg(msg string, source string) {
+	// TODO: broadcast starts with dollar, we are not handling server messages yet
+	chatMsg := fmt.Sprintf("<%s>: %s", source, msg)
+	cc.AddChannelMessage(chatMsg)
+}
+
 func (cc *ChatChannel) AddChannelMessage(msg string) {
 	cc.chatMessages[cc.bufToWritePtr] = msg
 	cc.bufToWritePtr++

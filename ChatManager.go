@@ -46,6 +46,10 @@ func (cm *ChatManager) NewTopic(channelName string, topic string) {
 	cm.channels[channelName].SetTopic(topic)
 }
 
+func (cm *ChatManager) NewTopicInfo(channelName string, nick string, timestamp string) {
+	cm.channels[channelName].SetTopicInfo(nick, timestamp)
+}
+
 func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 	for _, target := range targets {
 		channel, ok := cm.channels[target]

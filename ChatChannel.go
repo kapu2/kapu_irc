@@ -6,9 +6,11 @@ import (
 
 type ChatChannel struct {
 	// map with only keys
-	name  string
-	users map[string]struct{}
-	topic string
+	name              string
+	users             map[string]struct{}
+	topic             string
+	topicSetBy        string
+	topicSetTimestamp string // TODO: its unix timestamp at the moment
 	// ring buffer
 	chatMessages          [CHAT_LINES_MAX]string
 	bufToWritePtr         int
@@ -46,8 +48,14 @@ func (cc *ChatChannel) PartUser(user string, reason string) error {
 
 func (cc *ChatChannel) SetTopic(topic string) {
 	cc.topic = topic
-	// TODO: how to find out who set the topic?
-	msg := fmt.Sprintf("channel %s new topic set by ??? : %s", cc.name, cc.topic)
+	msg := fmt.Sprintf("channel %s topic : %s", cc.name, cc.topic)
+	cc.AddChannelMessage(msg)
+}
+
+func (cc *ChatChannel) SetTopicInfo(nick string, timestamp string) {
+	cc.topicSetBy = nick
+	cc.topicSetTimestamp = timestamp
+	msg := fmt.Sprintf("channel %s topic set by %s at %ss after unix epoch", cc.name, nick, timestamp)
 	cc.AddChannelMessage(msg)
 }
 

@@ -66,11 +66,15 @@ func (sk *StateKeeper) ServerReplyParser(reply []byte) {
 	} else if parsedReply.command == RPL_TOPIC {
 		err = NumericReplyValidityCheck(&parsedReply)
 		if err == nil {
-			if len(parsedReply.parameters) == 3 {
+			if len(parsedReply.parameters) == 2 || len(parsedReply.parameters) == 3 {
 				// parameter[0] is client, we dont need it
-				sk.cm.NewTopic(parsedReply.parameters[1], parsedReply.parameters[2])
+				if len(parsedReply.parameters) == 2 {
+					sk.cm.NewTopic(parsedReply.parameters[1], "")
+				} else {
+					sk.cm.NewTopic(parsedReply.parameters[1], parsedReply.parameters[2])
+				}
 			} else {
-				print(fmt.Errorf("error: RPL_TOPIC reply, amount of parameters expected: 3 got %d", len(parsedReply.parameters)))
+				print(fmt.Errorf("error: RPL_TOPIC reply, amount of parameters expected: 2 or 3 got %d", len(parsedReply.parameters)))
 			}
 		} else {
 			print(err.Error())
@@ -87,6 +91,29 @@ func (sk *StateKeeper) ServerReplyParser(reply []byte) {
 		} else {
 			print(err.Error())
 		}
+	} else if parsedReply.command == RPL_NAMREPLY {
+		err = NumericReplyValidityCheck(&parsedReply)
+		if err == nil {
+			if len(parsedReply.parameters) == 4 {
+				// parameter[0] is client, we dont need it
+				sk.cm.NewNamesReply(parsedReply.parameters[1], parsedReply.parameters[2], parsedReply.parameters[3])
+			} else {
+				print(fmt.Errorf("error: RPL_NAMREPLY reply, amount of parameters expected: 4 got %d", len(parsedReply.parameters)))
+			}
+		} else {
+			print(err.Error())
+		}
+	} else if parsedReply.command == RPL_ENDOFNAMES {
+		err = NumericReplyValidityCheck(&parsedReply)
+		if err == nil {
+			if len(parsedReply.parameters) == 3 {
+				// parameter[0] is client, we dont need it
+				sk.cm.NewNamesReplyEnd(parsedReply.parameters[1], parsedReply.parameters[2])
+			} else {
+				print(fmt.Errorf("error: RPL_NAMREPLY reply, amount of parameters expected: 3 got %d", len(parsedReply.parameters)))
+			}
+		} else {
+			print(err.Error())
+		}
 	}
-
 }

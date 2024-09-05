@@ -59,6 +59,16 @@ func (cc *ChatChannel) SetTopicInfo(nick string, timestamp string) {
 	cc.AddChannelMessage(msg)
 }
 
+func (cc *ChatChannel) NamesReply(symbol string, names string) {
+	// TODO: do something with symbol or not, seems unnecessary information
+	msg := fmt.Sprintf("channel %s names: %s", cc.name, names)
+	cc.AddChannelMessage(msg)
+}
+
+func (cc *ChatChannel) NamesReplyEnd(endOfNames string) {
+	cc.AddChannelMessage(endOfNames)
+}
+
 func (cc *ChatChannel) AddPrivMsg(msg string, source string) {
 	// TODO: broadcast starts with dollar, we are not handling server messages yet
 	chatMsg := fmt.Sprintf("<%s>: %s", source, msg)

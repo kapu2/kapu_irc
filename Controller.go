@@ -91,9 +91,28 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 	if strings.Index(string(cmd), "/j") == 0 {
 		cmds := strings.Split(cmd, " ")
 		if len(cmds) == 2 || len(cmds) == 3 {
-			// IRC supports multiple channels and passwords, but we are sticking with one channel and one password(optional)
+			// channels and potential passwords delimited by ","
+			// example: "/j #channel,#channel2 password1,password2"
 			msg := IRCMessage{}
 			msg.command = "JOIN"
+			msg.parameters = cmds[1:]
+			stringMsg := IRCMessageToString(msg)
+			controller.messagesToSend <- []byte(stringMsg)
+		}
+	} else if strings.Index(string(cmd), "/n") == 0 {
+		cmds := strings.Split(cmd, " ")
+		if len(cmds) == 2 || len(cmds) == 3 {
+			msg := IRCMessage{}
+			msg.command = "NAMES"
+			msg.parameters = cmds[1:]
+			stringMsg := IRCMessageToString(msg)
+			controller.messagesToSend <- []byte(stringMsg)
+		}
+	} else if strings.Index(string(cmd), "/t") == 0 {
+		cmds := strings.Split(cmd, " ")
+		if len(cmds) == 2 || len(cmds) == 3 {
+			msg := IRCMessage{}
+			msg.command = "TOPIC"
 			msg.parameters = cmds[1:]
 			stringMsg := IRCMessageToString(msg)
 			controller.messagesToSend <- []byte(stringMsg)

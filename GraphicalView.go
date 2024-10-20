@@ -72,7 +72,6 @@ type GraphicalView struct {
 	height              int
 	keymap              Keymap
 	chatArea            textarea.Model
-	chatAreaVal         string
 	namesArea           textarea.Model
 	inputArea           textarea.Model
 	infoArea            textarea.Model
@@ -99,11 +98,11 @@ func NewGraphicalView() *GraphicalView {
 	return &gv
 }
 
-func (gv GraphicalView) Init() tea.Cmd {
+func (gv *GraphicalView) Init() tea.Cmd {
 	return textarea.Blink
 }
 
-func (gv GraphicalView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (gv *GraphicalView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	gv.controllerInterface.HandleReceivedMessages()
 
 	var cmds []tea.Cmd
@@ -136,7 +135,6 @@ func (gv GraphicalView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newModel, cmd := gv.chatArea.Update(msg)
 	cmds = append(cmds, cmd)
 	gv.chatArea = newModel
-	gv.chatArea.SetValue(gv.chatAreaVal)
 
 	newModel, cmd = gv.namesArea.Update(msg)
 	cmds = append(cmds, cmd)
@@ -170,7 +168,7 @@ func (gv *GraphicalView) SizeTextAreas() {
 	gv.infoArea.SetHeight(infoAreaHeight)
 }
 
-func (gv GraphicalView) View() string {
+func (gv *GraphicalView) View() string {
 	var views []string
 	views = append(views, gv.chatArea.View())
 	views = append(views, gv.namesArea.View())

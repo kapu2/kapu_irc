@@ -3,14 +3,17 @@ package main
 import (
 	"bufio"
 	"os"
+
+	"github.com/rivo/tview"
 )
 
 type TerminalView struct {
+	app   *tview.Application
 	conIf ControllerInterface
 }
 
-func NewTerminalView() *TerminalView {
-	return &TerminalView{}
+func NewTerminalView(app *tview.Application) *TerminalView {
+	return &TerminalView{app: app}
 }
 
 func RemoveLast(s string) string {
@@ -29,7 +32,7 @@ func (tv *TerminalView) SetController(ci ControllerInterface) {
 	tv.conIf = ci
 }
 
-func (tv *TerminalView) GetConnectionInfo() (ipAndPort string, nick string) {
+func GetConnectionInfo() (ipAndPort string, nick string) {
 	fi, err := os.Open("connection_information.txt")
 	if err != nil {
 		panic(err)

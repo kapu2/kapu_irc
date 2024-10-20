@@ -6,8 +6,7 @@ import (
 
 func TestGetConnectionInfo(t *testing.T) {
 
-	view := NewTerminalView()
-	ipAndPort, nick := view.GetConnectionInfo()
+	ipAndPort, nick := GetConnectionInfo()
 	if ipAndPort == "" {
 		t.Fatalf("error, ipAndPort empty")
 	}

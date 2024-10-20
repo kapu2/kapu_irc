@@ -18,12 +18,12 @@ type ChatChannel struct {
 }
 
 func NewChatChannel(name string) *ChatChannel {
-	return &ChatChannel{name: name, bufToWritePtr: 0, filledBufferPositions: 0}
+	return &ChatChannel{name: name, users: make(map[string]struct{}), bufToWritePtr: 0, filledBufferPositions: 0}
 }
 
 func (cc *ChatChannel) JoinUser(user string) error {
 	_, exists := cc.users[user]
-	if exists {
+	if !exists {
 		cc.users[user] = struct{}{}
 	} else {
 		return fmt.Errorf("error: joining user: %s to channel: %s that already is in channel", user, cc.name)
@@ -82,4 +82,36 @@ func (cc *ChatChannel) AddChannelMessage(msg string) {
 	if cc.filledBufferPositions < CHAT_LINES_MAX {
 		cc.filledBufferPositions++
 	}
+}
+
+func (cc *ChatChannel) GetChatContent() string {
+	var ret string
+	// TODO: there is no chat scrolling yet, so we return 10 newest lines
+	var start int
+	if cc.filledBufferPositions > cc.bufToWritePtr {
+		if cc.bufToWritePtr < 10 {
+			start = CHAT_LINES_MAX - 1 - (10 - cc.bufToWritePtr)
+		} else {
+			start = cc.bufToWritePtr - 10
+		}
+	} else {
+		if cc.bufToWritePtr < 10 {
+			start = 0
+		} else {
+			start = cc.bufToWritePtr - 10
+		}
+	}
+	for start != cc.bufToWritePtr {
+		ret += cc.chatMessages[start] + "\n"
+		start = (start + 1) % CHAT_LINES_MAX
+	}
+	return ret
+}
+
+func (cc *ChatChannel) GetUsers() string {
+	var ret string
+	for user := range cc.users {
+		ret += user + "\n"
+	}
+	return ret
 }

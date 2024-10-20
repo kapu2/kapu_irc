@@ -9,17 +9,25 @@ const (
 )
 
 type ChatManager struct {
-	channels map[string](*ChatChannel)
-	privMsg  map[string](*PrivateChat)
-	myNick   string
+	channels       map[string](*ChatChannel)
+	privMsg        map[string](*PrivateChat)
+	openChatWindow *ChatChannel
+	myNick         string
+	observer       Observer
 }
 
 func NewChatManager() *ChatManager {
-	return &ChatManager{}
+	return &ChatManager{
+		channels: make(map[string](*ChatChannel)),
+		privMsg:  make(map[string](*PrivateChat)),
+	}
 }
 
 func (cm *ChatManager) NewJoin(channelName string, userName string) {
-	if userName == cm.myNick {
+	if userName == cm.myNick || cm.myNick == "" {
+		// TODO: there probably is a smarter place to define your own nickname for the first time
+		cm.myNick = userName
+
 		_, exists := cm.channels[channelName]
 		if exists {
 			panic(fmt.Sprintf("error: user %s joined channel that they are already in", userName))
@@ -27,12 +35,17 @@ func (cm *ChatManager) NewJoin(channelName string, userName string) {
 		c := NewChatChannel(channelName)
 		c.JoinUser(userName)
 		cm.channels[channelName] = c
+		if cm.openChatWindow == nil {
+			cm.openChatWindow = c
+		}
 	} else {
 		err := cm.channels[channelName].JoinUser(userName)
 		if err != nil {
 			fmt.Print(err)
 		}
 	}
+	cm.NotifyIfChanged(channelName)
+
 }
 
 func (cm *ChatManager) NewPart(channelName string, userName string, reason string) {
@@ -40,22 +53,27 @@ func (cm *ChatManager) NewPart(channelName string, userName string, reason strin
 	if err != nil {
 		fmt.Print(err)
 	}
+	cm.NotifyIfChanged(channelName)
 }
 
 func (cm *ChatManager) NewTopic(channelName string, topic string) {
 	cm.channels[channelName].SetTopic(topic)
+	cm.NotifyIfChanged(channelName)
 }
 
 func (cm *ChatManager) NewTopicInfo(channelName string, nick string, timestamp string) {
 	cm.channels[channelName].SetTopicInfo(nick, timestamp)
+	cm.NotifyIfChanged(channelName)
 }
 
 func (cm *ChatManager) NewNamesReply(symbol string, channelName string, names string) {
 	cm.channels[channelName].NamesReply(symbol, names)
+	cm.NotifyIfChanged(channelName)
 }
 
 func (cm *ChatManager) NewNamesReplyEnd(channelName string, endOfNames string) {
 	cm.channels[channelName].NamesReplyEnd(endOfNames)
+	cm.NotifyIfChanged(channelName)
 }
 
 func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
@@ -63,6 +81,7 @@ func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 		channel, ok := cm.channels[target]
 		if ok {
 			channel.AddPrivMsg(msg, source)
+			cm.NotifyIfChanged(channel.name)
 		} else {
 			var pc *PrivateChat
 			pc, ok = cm.privMsg[target]
@@ -74,5 +93,24 @@ func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 				pc.AddPrivMsg(msg, source)
 			}
 		}
+	}
+}
+func (cm *ChatManager) RegisterObserver(observer Observer) {
+	cm.observer = observer
+}
+
+func (cm *ChatManager) GetOpenChatWindow() string {
+	if cm.openChatWindow != nil {
+		return cm.openChatWindow.name
+	}
+	return ""
+	// error logging?
+}
+
+func (cm *ChatManager) NotifyIfChanged(channelName string) {
+	if cm.openChatWindow != nil && cm.openChatWindow.name == channelName {
+		cm.observer.NotifyObserver("chat", cm.openChatWindow.GetChatContent())
+		cm.observer.NotifyObserver("info", cm.openChatWindow.name)
+		cm.observer.NotifyObserver("names", cm.openChatWindow.GetUsers())
 	}
 }

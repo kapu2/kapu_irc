@@ -1,11 +1,13 @@
 package main
 
 type Model interface {
-	SetChannel(channel string)
-
-	GetChannel() string
+	//SetChannel(channel string)
+	// name of channel or user
+	GetOpenChatWindow() string
 
 	SetController(c ControllerInterface)
 
-	ServerReplyParser(reply []byte)
+	SetChatObserver(obs Observer)
+
+	ServerReplyParser(reply string)
 }

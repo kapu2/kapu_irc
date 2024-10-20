@@ -1,8 +1,11 @@
 package main
 
 func main() {
-	terminalView := NewTerminalView()
+	//app := tview.NewApplication()
+	//terminalView := NewTerminalView(app)
+	graphicalView := NewGraphicalView()
+
 	stateKeeper := NewStateKeeper()
-	controller := NewController(terminalView, stateKeeper)
+	controller := NewController(graphicalView, stateKeeper)
 	controller.StartProgram()
 }

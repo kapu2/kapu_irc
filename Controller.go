@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 )
 
 type Controller struct {
-	viewInterface  View
-	modelInterface Model
-	messagesToSend chan []byte
+	viewInterface      View
+	modelInterface     Model
+	messagesToSend     chan []byte
+	receivedReplyMutex sync.Mutex
+	receivedMessages   []string
 }
 
 func StartsWithReply(haystack []byte, command []byte) bool {
@@ -26,16 +30,33 @@ func StartsWithReply(haystack []byte, command []byte) bool {
 }
 
 func (c *Controller) Listener(conn net.Conn) {
-	buf := make([]byte, 1024)
+	//buf := make(string, 1024)
+	reader := bufio.NewReader(conn)
 	for {
-		n, err := conn.Read(buf)
+		buf, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading from server:", err)
 			return
+		} else {
+			// cut off \r
+			buf = buf[:len(buf)-2]
 		}
-		fmt.Println("Server reply:", string(buf[:n]))
-		c.modelInterface.ServerReplyParser(buf)
+		fmt.Println("Server reply:", buf)
+
+		c.receivedReplyMutex.Lock()
+		c.receivedMessages = append(c.receivedMessages, buf)
+		c.receivedReplyMutex.Unlock()
 	}
+}
+
+func (c *Controller) HandleReceivedMessages() {
+
+	c.receivedReplyMutex.Lock()
+	for _, reply := range c.receivedMessages {
+		c.modelInterface.ServerReplyParser(reply)
+	}
+	c.receivedMessages = nil
+	c.receivedReplyMutex.Unlock()
 }
 
 func (c *Controller) Commander(conn net.Conn) {
@@ -49,13 +70,14 @@ func NewController(v View, m Model) *Controller {
 	c := &Controller{viewInterface: v, modelInterface: m, messagesToSend: make(chan []byte)}
 	c.viewInterface.SetController(c)
 	c.modelInterface.SetController(c)
+	c.modelInterface.SetChatObserver(v)
 	return c
 }
 func (controller *Controller) StartProgram() {
 
-	controller.viewInterface.GetConnectionInfo()
+	//controller.viewInterface.GetConnectionInfo()
 
-	ipAndPort, nick := controller.viewInterface.GetConnectionInfo()
+	ipAndPort, nick := GetConnectionInfo()
 
 	conn, err := net.Dial("tcp", ipAndPort)
 	if err != nil {
@@ -68,9 +90,10 @@ func (controller *Controller) StartProgram() {
 	conn.Write([]byte(nickStr))
 	conn.Write([]byte("USER d * 0 :What is this even\r\n"))
 
-	controller.viewInterface.StartView()
 	go controller.Commander(conn)
-	controller.Listener(conn)
+	go controller.Listener(conn)
+
+	controller.viewInterface.StartView()
 }
 
 func (controller *Controller) SendCommand(msg []byte) {
@@ -121,7 +144,7 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 }
 
 func (controller *Controller) SendChatMessage(chatMsg string) {
-	currentChannel := controller.modelInterface.GetChannel()
+	currentChannel := controller.modelInterface.GetOpenChatWindow()
 	msg := IRCMessage{}
 	msg.command = "PRIVMSG"
 	msg.AddParameter(currentChannel)

@@ -5,9 +5,8 @@ import (
 )
 
 type StateKeeper struct {
-	channel string
-	conIf   ControllerInterface
-	cm      *ChatManager
+	conIf ControllerInterface
+	cm    *ChatManager
 }
 
 func NewStateKeeper() *StateKeeper {
@@ -19,12 +18,12 @@ func (sk *StateKeeper) SetController(ci ControllerInterface) {
 	sk.conIf = ci
 }
 
-func (sk *StateKeeper) SetChannel(channel string) {
-	sk.channel = channel
+func (sk *StateKeeper) SetChatObserver(obs Observer) {
+	sk.cm.RegisterObserver(obs)
 }
 
-func (sk *StateKeeper) GetChannel() string {
-	return sk.channel
+func (sk *StateKeeper) GetOpenChatWindow() string {
+	return sk.cm.GetOpenChatWindow()
 }
 
 func NumericReplyValidityCheck(msg *IRCMessage) error {
@@ -37,8 +36,8 @@ func NumericReplyValidityCheck(msg *IRCMessage) error {
 	return err
 }
 
-func (sk *StateKeeper) ServerReplyParser(reply []byte) {
-	parsedReply, err := ParseIRCMessage(string(string(reply)))
+func (sk *StateKeeper) ServerReplyParser(reply string) {
+	parsedReply, err := ParseIRCMessage(reply)
 	if err != nil {
 		print(err.Error())
 	}

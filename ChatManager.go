@@ -11,7 +11,7 @@ const (
 type ChatManager struct {
 	channels       map[string](*ChatChannel)
 	privMsg        map[string](*PrivateChat)
-	openChatWindow *ChatChannel
+	openChatWindow ChatWindow
 	myNick         string
 	observer       Observer
 }
@@ -101,16 +101,16 @@ func (cm *ChatManager) RegisterObserver(observer Observer) {
 
 func (cm *ChatManager) GetOpenChatWindow() string {
 	if cm.openChatWindow != nil {
-		return cm.openChatWindow.name
+		return cm.openChatWindow.GetName()
 	}
 	return ""
 	// error logging?
 }
 
 func (cm *ChatManager) NotifyIfChanged(channelName string) {
-	if cm.openChatWindow != nil && cm.openChatWindow.name == channelName {
+	if cm.openChatWindow != nil && cm.openChatWindow.GetName() == channelName {
 		cm.observer.NotifyObserver("chat", cm.openChatWindow.GetChatContent())
-		cm.observer.NotifyObserver("info", cm.openChatWindow.name)
+		cm.observer.NotifyObserver("info", cm.openChatWindow.GetInfo())
 		cm.observer.NotifyObserver("names", cm.openChatWindow.GetUsers())
 	}
 }

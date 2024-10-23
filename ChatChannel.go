@@ -115,3 +115,11 @@ func (cc *ChatChannel) GetUsers() string {
 	}
 	return ret
 }
+
+func (cc *ChatChannel) GetInfo() string {
+	return "Channel name: " + cc.name
+}
+
+func (cc *ChatChannel) GetName() string {
+	return cc.name
+}

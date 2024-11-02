@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -41,7 +42,8 @@ func (c *Controller) Listener(conn net.Conn) {
 			// cut off \r
 			buf = buf[:len(buf)-2]
 		}
-		fmt.Println("Server reply:", buf)
+		c.modelInterface.NewStatusMessage(buf)
+		//fmt.Println("Server reply:", buf)
 
 		c.receivedReplyMutex.Lock()
 		c.receivedMessages = append(c.receivedMessages, buf)
@@ -62,7 +64,7 @@ func (c *Controller) HandleReceivedMessages() {
 func (c *Controller) Commander(conn net.Conn) {
 	for buf := range c.messagesToSend {
 		conn.Write(buf)
-		fmt.Println("kapu-irc: Sending: ", string(buf))
+		//fmt.Println("kapu-irc: Sending: ", string(buf))
 	}
 }
 
@@ -139,6 +141,17 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 			msg.parameters = cmds[1:]
 			stringMsg := IRCMessageToString(msg)
 			controller.messagesToSend <- []byte(stringMsg)
+		}
+	} else if strings.Index(string(cmd), "/c") == 0 {
+		cmds := strings.Split(cmd, " ")
+		if len(cmds) == 2 {
+			nr, err := strconv.Atoi(cmds[1])
+			if err == nil {
+				controller.modelInterface.ChangeChatWindow(nr)
+			} else {
+				problemStr := "Invalid channel number: " + cmds[1]
+				controller.modelInterface.NewStatusMessage(problemStr)
+			}
 		}
 	}
 }

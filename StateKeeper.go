@@ -26,6 +26,10 @@ func (sk *StateKeeper) GetOpenChatWindow() string {
 	return sk.cm.GetOpenChatWindow()
 }
 
+func (sk *StateKeeper) ChangeChatWindow(nr int) {
+	sk.cm.ChangeOpenChatWindow(nr)
+}
+
 func NumericReplyValidityCheck(msg *IRCMessage) error {
 	var err error
 	if msg.source.sourceName == "" {
@@ -115,4 +119,8 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 			print(err.Error())
 		}
 	}
+}
+
+func (sk *StateKeeper) NewStatusMessage(msg string) {
+	sk.cm.NewStatusMessage(msg)
 }

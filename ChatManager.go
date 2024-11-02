@@ -9,18 +9,24 @@ const (
 )
 
 type ChatManager struct {
-	channels       map[string](*ChatChannel)
-	privMsg        map[string](*PrivateChat)
-	openChatWindow ChatWindow
-	myNick         string
-	observer       Observer
+	channels            map[string](*ChatChannel)
+	privMsg             map[string](*PrivateChat)
+	chatNumberToChannel []ChatWindow
+	statusChat          *StatusChat
+	openChatWindow      ChatWindow
+	myNick              string
+	observer            Observer
 }
 
 func NewChatManager() *ChatManager {
-	return &ChatManager{
-		channels: make(map[string](*ChatChannel)),
-		privMsg:  make(map[string](*PrivateChat)),
-	}
+	mgr := ChatManager{}
+	mgr.channels = make(map[string](*ChatChannel))
+	mgr.privMsg = make(map[string](*PrivateChat))
+	mgr.statusChat = NewStatusChat()
+	mgr.openChatWindow = mgr.statusChat
+	mgr.chatNumberToChannel = append(mgr.chatNumberToChannel, mgr.statusChat)
+
+	return &mgr
 }
 
 func (cm *ChatManager) NewJoin(channelName string, userName string) {
@@ -33,6 +39,8 @@ func (cm *ChatManager) NewJoin(channelName string, userName string) {
 			panic(fmt.Sprintf("error: user %s joined channel that they are already in", userName))
 		}
 		c := NewChatChannel(channelName)
+		cm.chatNumberToChannel = append(cm.chatNumberToChannel, c)
+
 		c.JoinUser(userName)
 		cm.channels[channelName] = c
 		if cm.openChatWindow == nil {
@@ -89,6 +97,7 @@ func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 				pc.AddPrivMsg(msg, source)
 			} else {
 				pc = NewPrivateChat(source)
+				cm.chatNumberToChannel = append(cm.chatNumberToChannel, pc)
 				// TODO: some check whether its user or channel join/part bug
 				pc.AddPrivMsg(msg, source)
 			}
@@ -112,5 +121,17 @@ func (cm *ChatManager) NotifyIfChanged(channelName string) {
 		cm.observer.NotifyObserver("chat", cm.openChatWindow.GetChatContent())
 		cm.observer.NotifyObserver("info", cm.openChatWindow.GetInfo())
 		cm.observer.NotifyObserver("names", cm.openChatWindow.GetUsers())
+	}
+}
+
+func (cm *ChatManager) NewStatusMessage(msg string) {
+	cm.statusChat.AddChannelMessage(msg)
+	cm.NotifyIfChanged(cm.statusChat.GetName())
+}
+
+func (cm *ChatManager) ChangeOpenChatWindow(nr int) {
+	if nr >= 0 && nr < len(cm.chatNumberToChannel) {
+		cm.openChatWindow = cm.chatNumberToChannel[nr]
+		cm.NotifyIfChanged(cm.openChatWindow.GetName())
 	}
 }

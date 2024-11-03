@@ -142,6 +142,10 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 			stringMsg := IRCMessageToString(msg)
 			controller.messagesToSend <- []byte(stringMsg)
 		}
+	} else if strings.Index(string(cmd), "/cn") == 0 {
+		controller.modelInterface.ChangeToNextChatWindow()
+	} else if strings.Index(string(cmd), "/cp") == 0 {
+		controller.modelInterface.ChangeToNextChatWindow()
 	} else if strings.Index(string(cmd), "/c") == 0 {
 		cmds := strings.Split(cmd, " ")
 		if len(cmds) == 2 {
@@ -164,5 +168,10 @@ func (controller *Controller) SendChatMessage(chatMsg string) {
 	msg.AddParameter(chatMsg)
 
 	stringMsg := IRCMessageToString(msg)
+
+	// TODO: make the below possible:
+	// we are parsing our own PRIVMSG as if it was a reply from the server, because the server does not echo our own PRIVMSG
+	//controller.modelInterface.ServerReplyParser(stringMsg)
+
 	controller.messagesToSend <- []byte(stringMsg)
 }

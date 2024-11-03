@@ -23,11 +23,17 @@ func (sk *StateKeeper) SetChatObserver(obs Observer) {
 }
 
 func (sk *StateKeeper) GetOpenChatWindow() string {
-	return sk.cm.GetOpenChatWindow()
+	return sk.cm.GetOpenChatWindow().GetName()
 }
 
 func (sk *StateKeeper) ChangeChatWindow(nr int) {
 	sk.cm.ChangeOpenChatWindow(nr)
+}
+func (sk *StateKeeper) ChangeToNextChatWindow() {
+	sk.cm.ChangeToNextChatWindow()
+}
+func (sk *StateKeeper) ChangeToPreviousChatWindow() {
+	sk.cm.ChangeToPreviousChatWindow()
 }
 
 func NumericReplyValidityCheck(msg *IRCMessage) error {
@@ -65,6 +71,16 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 				err = fmt.Errorf("error: sourceName is empty while JOINing")
 			}
 			print(err.Error())
+		}
+	} else if parsedReply.command == "PRIVMSG" || parsedReply.command == "NOTICE" {
+		// TODO: NOTICE will work similarly to how PRIVMSG works, it could be shown differently
+		if len(parsedReply.parameters) > 1 {
+			message := parsedReply.parameters[len(parsedReply.parameters)-1]
+			for i := 0; i < len(parsedReply.parameters)-1; i++ {
+				sk.cm.NewPrivMsg(parsedReply.parameters[:len(parsedReply.parameters)-1],
+					parsedReply.source.sourceName,
+					message)
+			}
 		}
 	} else if parsedReply.command == RPL_TOPIC {
 		err = NumericReplyValidityCheck(&parsedReply)

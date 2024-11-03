@@ -13,9 +13,10 @@ type ChatManager struct {
 	privMsg             map[string](*PrivateChat)
 	chatNumberToChannel []ChatWindow
 	statusChat          *StatusChat
-	openChatWindow      ChatWindow
-	myNick              string
-	observer            Observer
+	//openChatWindow      ChatWindow
+	openChatWindowNumber int
+	myNick               string
+	observer             Observer
 }
 
 func NewChatManager() *ChatManager {
@@ -23,10 +24,25 @@ func NewChatManager() *ChatManager {
 	mgr.channels = make(map[string](*ChatChannel))
 	mgr.privMsg = make(map[string](*PrivateChat))
 	mgr.statusChat = NewStatusChat()
-	mgr.openChatWindow = mgr.statusChat
+	//mgr.openChatWindow = mgr.statusChat
+	mgr.openChatWindowNumber = 0
 	mgr.chatNumberToChannel = append(mgr.chatNumberToChannel, mgr.statusChat)
 
 	return &mgr
+}
+
+func RemoveExtraInfoFromTarget(s string) (string, error) {
+	// we dont care about % or @ ( message only to half-ops or ops ), we show it if we can
+	if len(s) > 0 && (s[0] == '%' || s[0] == '@') {
+		s = RemoveFirstRuneFromString(s)
+		return RemoveExtraInfoFromTarget(s)
+	}
+	if len(s) > 0 {
+		return s, nil
+	} else {
+		err := "Error: empty target string in PRIVMSG (or constits only of % and @)"
+		return s, fmt.Errorf("%s", err)
+	}
 }
 
 func (cm *ChatManager) NewJoin(channelName string, userName string) {
@@ -43,9 +59,9 @@ func (cm *ChatManager) NewJoin(channelName string, userName string) {
 
 		c.JoinUser(userName)
 		cm.channels[channelName] = c
-		if cm.openChatWindow == nil {
-			cm.openChatWindow = c
-		}
+
+		// its a new channel, we change window to it
+		cm.openChatWindowNumber = len(cm.chatNumberToChannel) - 1
 	} else {
 		err := cm.channels[channelName].JoinUser(userName)
 		if err != nil {
@@ -86,21 +102,36 @@ func (cm *ChatManager) NewNamesReplyEnd(channelName string, endOfNames string) {
 
 func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 	for _, target := range targets {
-		channel, ok := cm.channels[target]
-		if ok {
-			channel.AddPrivMsg(msg, source)
-			cm.NotifyIfChanged(channel.name)
-		} else {
-			var pc *PrivateChat
-			pc, ok = cm.privMsg[target]
-			if ok {
-				pc.AddPrivMsg(msg, source)
+		var err error
+		target, err = RemoveExtraInfoFromTarget(target)
+		if err == nil {
+			if target[0] == '$' {
+				// broadcast
+				str := "BROADCAST from " + source + ": " + msg
+				cm.NewStatusMessage(str)
+				cm.NotifyIfChanged(cm.statusChat.GetName())
 			} else {
-				pc = NewPrivateChat(source)
-				cm.chatNumberToChannel = append(cm.chatNumberToChannel, pc)
-				// TODO: some check whether its user or channel join/part bug
-				pc.AddPrivMsg(msg, source)
+				channel, ok := cm.channels[target]
+				if ok {
+					channel.AddPrivMsg(msg, source)
+					cm.NotifyIfChanged(channel.name)
+				} else {
+					var pc *PrivateChat
+					pc, ok = cm.privMsg[target]
+					if ok {
+						pc.AddPrivMsg(msg, source)
+					} else {
+						pc = NewPrivateChat(source)
+						cm.chatNumberToChannel = append(cm.chatNumberToChannel, pc)
+						// TODO: some check whether its user or channel join/part bug
+						pc.AddPrivMsg(msg, source)
+					}
+					cm.NotifyIfChanged(pc.name)
+				}
 			}
+
+		} else {
+			cm.NewStatusMessage(err.Error())
 		}
 	}
 }
@@ -108,19 +139,20 @@ func (cm *ChatManager) RegisterObserver(observer Observer) {
 	cm.observer = observer
 }
 
-func (cm *ChatManager) GetOpenChatWindow() string {
-	if cm.openChatWindow != nil {
-		return cm.openChatWindow.GetName()
+func (cm *ChatManager) GetOpenChatWindow() ChatWindow {
+	if cm.openChatWindowNumber < len(cm.chatNumberToChannel) && cm.openChatWindowNumber >= 0 {
+		return cm.chatNumberToChannel[cm.openChatWindowNumber]
+	} else {
+		return nil
 	}
-	return ""
 	// error logging?
 }
 
 func (cm *ChatManager) NotifyIfChanged(channelName string) {
-	if cm.openChatWindow != nil && cm.openChatWindow.GetName() == channelName {
-		cm.observer.NotifyObserver("chat", cm.openChatWindow.GetChatContent())
-		cm.observer.NotifyObserver("info", cm.openChatWindow.GetInfo())
-		cm.observer.NotifyObserver("names", cm.openChatWindow.GetUsers())
+	if cm.GetOpenChatWindow() != nil && cm.GetOpenChatWindow().GetName() == channelName {
+		cm.observer.NotifyObserver("chat", cm.GetOpenChatWindow().GetChatContent())
+		cm.observer.NotifyObserver("info", cm.GetOpenChatWindow().GetInfo())
+		cm.observer.NotifyObserver("names", cm.GetOpenChatWindow().GetUsers())
 	}
 }
 
@@ -131,7 +163,25 @@ func (cm *ChatManager) NewStatusMessage(msg string) {
 
 func (cm *ChatManager) ChangeOpenChatWindow(nr int) {
 	if nr >= 0 && nr < len(cm.chatNumberToChannel) {
-		cm.openChatWindow = cm.chatNumberToChannel[nr]
-		cm.NotifyIfChanged(cm.openChatWindow.GetName())
+		cm.openChatWindowNumber = nr
+		cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
+	} else {
+		cm.NewStatusMessage("Error: requested channel number does not exist")
 	}
+}
+
+func (cm *ChatManager) ChangeToNextChatWindow() {
+	channelAmount := len(cm.chatNumberToChannel)
+	cm.openChatWindowNumber = (cm.openChatWindowNumber + 1) % channelAmount
+	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
+}
+
+func (cm *ChatManager) ChangeToPreviousChatWindow() {
+	channelAmount := len(cm.chatNumberToChannel)
+	if cm.openChatWindowNumber != 0 {
+		cm.openChatWindowNumber = (cm.openChatWindowNumber - 1) % channelAmount
+	} else {
+		cm.openChatWindowNumber = channelAmount - 1
+	}
+	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
 }

@@ -5,6 +5,8 @@ type Model interface {
 	// name of channel or user
 	GetOpenChatWindow() string
 	ChangeChatWindow(int)
+	ChangeToNextChatWindow()
+	ChangeToPreviousChatWindow()
 
 	SetController(c ControllerInterface)
 

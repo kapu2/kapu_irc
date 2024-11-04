@@ -134,6 +134,11 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 		} else {
 			print(err.Error())
 		}
+	} else {
+		// unhandled commands
+		// most of them are decent error replies, so lets just show them on statuswindow
+		str := "Unhandled response: " + reply
+		sk.NewStatusMessage(str)
 	}
 }
 

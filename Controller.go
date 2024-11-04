@@ -162,16 +162,22 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 
 func (controller *Controller) SendChatMessage(chatMsg string) {
 	currentChannel := controller.modelInterface.GetOpenChatWindow()
-	msg := IRCMessage{}
-	msg.command = "PRIVMSG"
-	msg.AddParameter(currentChannel)
-	msg.AddParameter(chatMsg)
 
-	stringMsg := IRCMessageToString(msg)
+	if currentChannel != "?StatusWindow" {
+		msg := IRCMessage{}
+		msg.command = "PRIVMSG"
+		msg.AddParameter(currentChannel)
+		msg.AddParameter(chatMsg)
 
-	// TODO: make the below possible:
-	// we are parsing our own PRIVMSG as if it was a reply from the server, because the server does not echo our own PRIVMSG
-	//controller.modelInterface.ServerReplyParser(stringMsg)
+		stringMsg := IRCMessageToString(msg)
 
-	controller.messagesToSend <- []byte(stringMsg)
+		// we are parsing our own PRIVMSG as if it was a reply from the server, because the server does not echo our own PRIVMSG
+		// TODO: currently we dont show our own nick while writing, nickname changing has to be implemented first
+		controller.modelInterface.ServerReplyParser(stringMsg)
+
+		controller.messagesToSend <- []byte(stringMsg)
+	} else {
+		controller.modelInterface.NewStatusMessage("This is status window, commands start with /")
+	}
+
 }

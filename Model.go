@@ -15,4 +15,6 @@ type Model interface {
 	ServerReplyParser(reply string)
 
 	NewStatusMessage(msg string)
+
+	GetMyNick() string
 }

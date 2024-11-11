@@ -1,5 +1,9 @@
 package main
 
+import (
+	"os"
+)
+
 type StatusChat struct {
 	// ring buffer
 	chatMessages          [CHAT_LINES_MAX]string
@@ -8,6 +12,11 @@ type StatusChat struct {
 }
 
 func NewStatusChat() *StatusChat {
+	f, err := os.OpenFile("status.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic("error: can't open file status.txt")
+	}
+	f.Close()
 	return &StatusChat{}
 }
 
@@ -18,6 +27,12 @@ func (cc *StatusChat) AddChannelMessage(msg string) {
 	if cc.filledBufferPositions < CHAT_LINES_MAX {
 		cc.filledBufferPositions++
 	}
+	f, err := os.OpenFile("status.txt", os.O_APPEND|os.O_WRONLY, 0644)
+	f.Write([]byte(msg + "\n"))
+	if err != nil {
+		panic("error: can't append to status.txt")
+	}
+	defer f.Close()
 }
 
 func (cc *StatusChat) GetChatContent() string {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 type StateKeeper struct {
@@ -82,6 +83,11 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 					message)
 			}
 		}
+	} else if parsedReply.command == "NICK" {
+		oldNick := parsedReply.source.user
+		// there can be unnecessary garbage after "!" and we don't care about it
+		newNick := strings.Split(parsedReply.parameters[0], "!")[0]
+		sk.cm.NewNick(oldNick, newNick)
 	} else if parsedReply.command == RPL_TOPIC {
 		err = NumericReplyValidityCheck(&parsedReply)
 		if err == nil {
@@ -134,6 +140,17 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 		} else {
 			print(err.Error())
 		}
+	} else if parsedReply.command == RPL_WELCOME {
+		err = NumericReplyValidityCheck(&parsedReply)
+		if err == nil {
+			if len(parsedReply.parameters) == 2 {
+				sk.cm.NewWelcome(parsedReply.parameters[0], parsedReply.parameters[1])
+			} else {
+				print(fmt.Errorf("error: RPL_NAMREPLY reply, amount of parameters expected: 3 got %d", len(parsedReply.parameters)))
+			}
+		} else {
+			print(err.Error())
+		}
 	} else {
 		// unhandled commands
 		// most of them are decent error replies, so lets just show them on statuswindow
@@ -144,4 +161,8 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 
 func (sk *StateKeeper) NewStatusMessage(msg string) {
 	sk.cm.NewStatusMessage(msg)
+}
+
+func (sk *StateKeeper) GetMyNick() string {
+	return sk.cm.myNick
 }

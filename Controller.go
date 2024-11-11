@@ -166,13 +166,13 @@ func (controller *Controller) SendChatMessage(chatMsg string) {
 	if currentChannel != "?StatusWindow" {
 		msg := IRCMessage{}
 		msg.command = "PRIVMSG"
+		msg.source.sourceName = controller.modelInterface.GetMyNick()
 		msg.AddParameter(currentChannel)
 		msg.AddParameter(chatMsg)
 
 		stringMsg := IRCMessageToString(msg)
 
 		// we are parsing our own PRIVMSG as if it was a reply from the server, because the server does not echo our own PRIVMSG
-		// TODO: currently we dont show our own nick while writing, nickname changing has to be implemented first
 		controller.modelInterface.ServerReplyParser(stringMsg)
 
 		controller.messagesToSend <- []byte(stringMsg)

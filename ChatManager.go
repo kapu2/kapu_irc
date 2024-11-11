@@ -8,6 +8,12 @@ const (
 	CHAT_LINES_MAX = int(1024)
 )
 
+const (
+	NICK_RANK_REGULAR = iota
+	NICK_RANK_VOICE
+	NICK_RANK_OPERATOR
+)
+
 type ChatManager struct {
 	channels            map[string](*ChatChannel)
 	privMsg             map[string](*PrivateChat)
@@ -46,10 +52,7 @@ func RemoveExtraInfoFromTarget(s string) (string, error) {
 }
 
 func (cm *ChatManager) NewJoin(channelName string, userName string) {
-	if userName == cm.myNick || cm.myNick == "" {
-		// TODO: there probably is a smarter place to define your own nickname for the first time
-		cm.myNick = userName
-
+	if userName == cm.myNick {
 		_, exists := cm.channels[channelName]
 		if exists {
 			panic(fmt.Sprintf("error: user %s joined channel that they are already in", userName))
@@ -98,6 +101,27 @@ func (cm *ChatManager) NewNamesReply(symbol string, channelName string, names st
 func (cm *ChatManager) NewNamesReplyEnd(channelName string, endOfNames string) {
 	cm.channels[channelName].NamesReplyEnd(endOfNames)
 	cm.NotifyIfChanged(channelName)
+}
+
+func (cm *ChatManager) NewWelcome(myNick string, message string) {
+	cm.myNick = myNick
+	cm.NewStatusMessage(message)
+	cm.NotifyIfChanged(cm.statusChat.GetName())
+}
+
+func (cm *ChatManager) NewNick(oldNick string, newNick string) {
+	if oldNick == cm.myNick {
+		cm.myNick = newNick
+	} else {
+		// privmsg doesn't need to know if our own name is changed
+		for _, privMsg := range cm.privMsg {
+			privMsg.ChangeNick(oldNick, newNick)
+		}
+	}
+	for _, channel := range cm.channels {
+		channel.ChangeNick(oldNick, newNick)
+	}
+	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
 }
 
 func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {

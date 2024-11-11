@@ -16,6 +16,14 @@ func NewPrivateChat(name string) *PrivateChat {
 	return &PrivateChat{name: name}
 }
 
+func (cc *PrivateChat) ChangeNick(oldNick string, newNick string) {
+	if oldNick == cc.name {
+		cc.name = newNick
+		msg := fmt.Sprintf("user: %s changed nick to %s", oldNick, newNick)
+		cc.AddChannelMessage(msg)
+	}
+}
+
 // TODO: below are same with ChatChannel, combine them somehow
 
 func (cc *PrivateChat) AddPrivMsg(msg string, source string) {

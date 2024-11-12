@@ -107,6 +107,12 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 			reason = parsedReply.parameters[0]
 		}
 		sk.cm.NewQuit(user, reason)
+	} else if parsedReply.command == "TOPIC" {
+		topic := ""
+		if len(parsedReply.parameters) == 2 {
+			topic = parsedReply.parameters[1]
+		}
+		sk.cm.NewTopic(parsedReply.parameters[0], topic)
 	} else if parsedReply.command == RPL_TOPIC {
 		err = NumericReplyValidityCheck(&parsedReply)
 		if err == nil {

@@ -150,7 +150,7 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 		}
 	} else if command == "/t" {
 		chatChannel := controller.modelInterface.GetOpenChatWindow()
-		if chatChannel != "" && chatChannel[0] != '!' && chatChannel[0] != '#' {
+		if chatChannel != "" && (chatChannel[0] == '!' || chatChannel[0] == '#') {
 			cmds := strings.Split(cmd, " ")
 			if len(cmds) == 1 || len(cmds) == 2 {
 				msg := IRCMessage{}

@@ -4,6 +4,7 @@ type Model interface {
 	//SetChannel(channel string)
 	// name of channel or user
 	GetOpenChatWindow() string
+	CloseOpenWindow()
 	ChangeChatWindow(int)
 	ChangeToNextChatWindow()
 	ChangeToPreviousChatWindow()

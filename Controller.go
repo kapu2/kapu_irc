@@ -111,9 +111,13 @@ func (controller *Controller) HandleInput(input string) {
 		}
 	}
 }
-
+func GetCommand(cmd string) string {
+	before, _, _ := strings.Cut(cmd, " ")
+	return before
+}
 func (controller *Controller) HandleInternalCommand(cmd string) {
-	if strings.Index(string(cmd), "/j") == 0 {
+	command := GetCommand(cmd)
+	if command == "/j" {
 		cmds := strings.Split(cmd, " ")
 		if len(cmds) == 2 || len(cmds) == 3 {
 			// channels and potential passwords delimited by ","
@@ -124,7 +128,18 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 			stringMsg := IRCMessageToString(msg)
 			controller.messagesToSend <- []byte(stringMsg)
 		}
-	} else if strings.Index(string(cmd), "/n") == 0 {
+	} else if command == "/nick" {
+		cmds := strings.Split(cmd, " ")
+		if len(cmds) >= 2 {
+			msg := IRCMessage{}
+			msg.command = "NICK"
+			msg.parameters = append(msg.parameters, cmds[1])
+			stringMsg := IRCMessageToString(msg)
+			controller.messagesToSend <- []byte(stringMsg)
+		} else {
+			controller.modelInterface.NewStatusMessage("/nick needs second parameter")
+		}
+	} else if command == "/n" {
 		cmds := strings.Split(cmd, " ")
 		if len(cmds) == 2 || len(cmds) == 3 {
 			msg := IRCMessage{}
@@ -133,20 +148,33 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 			stringMsg := IRCMessageToString(msg)
 			controller.messagesToSend <- []byte(stringMsg)
 		}
-	} else if strings.Index(string(cmd), "/t") == 0 {
-		cmds := strings.Split(cmd, " ")
-		if len(cmds) == 2 || len(cmds) == 3 {
-			msg := IRCMessage{}
-			msg.command = "TOPIC"
-			msg.parameters = cmds[1:]
-			stringMsg := IRCMessageToString(msg)
-			controller.messagesToSend <- []byte(stringMsg)
+	} else if command == "/t" {
+		chatChannel := controller.modelInterface.GetOpenChatWindow()
+		if chatChannel != "" && chatChannel[0] != '!' && chatChannel[0] != '#' {
+			cmds := strings.Split(cmd, " ")
+			if len(cmds) == 1 || len(cmds) == 2 {
+				msg := IRCMessage{}
+				msg.command = "TOPIC"
+				msg.parameters = append(msg.parameters, chatChannel)
+				if len(cmds) == 2 {
+					msg.parameters = append(msg.parameters, cmds[1])
+				}
+				stringMsg := IRCMessageToString(msg)
+				controller.messagesToSend <- []byte(stringMsg)
+			} else {
+				controller.modelInterface.NewStatusMessage("too many arguments for /t")
+			}
+		} else {
+			controller.modelInterface.NewStatusMessage("/t must be used on a channel")
 		}
-	} else if strings.Index(string(cmd), "/cn") == 0 {
+	} else if command == "/close" {
+		// TODO: prevent closing before parting
+		controller.modelInterface.CloseOpenWindow()
+	} else if command == "/cn" {
 		controller.modelInterface.ChangeToNextChatWindow()
-	} else if strings.Index(string(cmd), "/cp") == 0 {
+	} else if command == "/cp" {
 		controller.modelInterface.ChangeToNextChatWindow()
-	} else if strings.Index(string(cmd), "/c") == 0 {
+	} else if command == "/c" {
 		cmds := strings.Split(cmd, " ")
 		if len(cmds) == 2 {
 			nr, err := strconv.Atoi(cmds[1])
@@ -156,6 +184,18 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 				problemStr := "Invalid channel number: " + cmds[1]
 				controller.modelInterface.NewStatusMessage(problemStr)
 			}
+		}
+	} else if command == "/part" {
+		chatChannel := controller.modelInterface.GetOpenChatWindow()
+		if chatChannel != "" && (chatChannel[0] == '!' || chatChannel[0] == '#') {
+			_, reason, _ := strings.Cut(cmd, " ")
+			msg := IRCMessage{}
+			msg.command = "PART"
+			msg.parameters = append(msg.parameters, chatChannel, reason)
+			stringMsg := IRCMessageToString(msg)
+			controller.messagesToSend <- []byte(stringMsg)
+		} else {
+			controller.modelInterface.NewStatusMessage("/part must be used on a channel")
 		}
 	}
 }

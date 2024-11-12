@@ -26,6 +26,9 @@ func (sk *StateKeeper) SetChatObserver(obs Observer) {
 func (sk *StateKeeper) GetOpenChatWindow() string {
 	return sk.cm.GetOpenChatWindow().GetName()
 }
+func (sk *StateKeeper) CloseOpenWindow() {
+	sk.cm.CloseOpenWindow()
+}
 
 func (sk *StateKeeper) ChangeChatWindow(nr int) {
 	sk.cm.ChangeOpenChatWindow(nr)
@@ -84,10 +87,26 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 			}
 		}
 	} else if parsedReply.command == "NICK" {
-		oldNick := parsedReply.source.user
+		oldNick := parsedReply.source.sourceName
 		// there can be unnecessary garbage after "!" and we don't care about it
 		newNick := strings.Split(parsedReply.parameters[0], "!")[0]
 		sk.cm.NewNick(oldNick, newNick)
+
+	} else if parsedReply.command == "PART" {
+		user := parsedReply.source.sourceName
+		channel := parsedReply.parameters[0]
+		reason := "no reason"
+		if len(parsedReply.parameters) == 2 {
+			reason = parsedReply.parameters[1]
+		}
+		sk.cm.NewPart(channel, user, reason)
+	} else if parsedReply.command == "QUIT" {
+		user := parsedReply.source.sourceName
+		reason := "no reason"
+		if len(parsedReply.parameters) == 1 {
+			reason = parsedReply.parameters[0]
+		}
+		sk.cm.NewQuit(user, reason)
 	} else if parsedReply.command == RPL_TOPIC {
 		err = NumericReplyValidityCheck(&parsedReply)
 		if err == nil {

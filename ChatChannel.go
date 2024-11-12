@@ -37,7 +37,7 @@ func (cc *ChatChannel) JoinUser(user string) error {
 
 func (cc *ChatChannel) PartUser(user string, reason string) error {
 	_, exists := cc.users[user]
-	if !exists {
+	if exists {
 		delete(cc.users, user)
 	} else {
 		return fmt.Errorf("error: parting user: %s from channel: %s that is not in channel", user, cc.name)
@@ -47,9 +47,19 @@ func (cc *ChatChannel) PartUser(user string, reason string) error {
 	return nil
 }
 
+func (cc *ChatChannel) QuitUser(user string, reason string) error {
+	_, exists := cc.users[user]
+	if exists {
+		delete(cc.users, user)
+		msg := fmt.Sprintf("user: %s quit %s, reason: \"%s\"", user, cc.name, reason)
+		cc.AddChannelMessage(msg)
+	}
+	return nil
+}
+
 func (cc *ChatChannel) ChangeNick(oldNick string, newNick string) {
 	_, exists := cc.users[oldNick]
-	if !exists {
+	if exists {
 		cc.users[newNick] = cc.users[oldNick]
 		delete(cc.users, oldNick)
 

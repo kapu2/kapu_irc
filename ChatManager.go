@@ -52,24 +52,23 @@ func RemoveExtraInfoFromTarget(s string) (string, error) {
 }
 
 func (cm *ChatManager) NewJoin(channelName string, userName string) {
-	if userName == cm.myNick {
-		_, exists := cm.channels[channelName]
-		if exists {
-			panic(fmt.Sprintf("error: user %s joined channel that they are already in", userName))
-		}
+
+	_, exists := cm.channels[channelName]
+
+	if userName == cm.myNick && !exists {
 		c := NewChatChannel(channelName)
 		cm.chatNumberToChannel = append(cm.chatNumberToChannel, c)
-
 		c.JoinUser(userName)
 		cm.channels[channelName] = c
-
 		// its a new channel, we change window to it
 		cm.openChatWindowNumber = len(cm.chatNumberToChannel) - 1
-	} else {
+	} else if exists {
 		err := cm.channels[channelName].JoinUser(userName)
 		if err != nil {
 			fmt.Print(err)
 		}
+	} else {
+		panic(fmt.Sprintf("panic: user %s joining channel %s (a channel we are not in, and user that is not us)", userName, channelName))
 	}
 	cm.NotifyIfChanged(channelName)
 
@@ -81,6 +80,12 @@ func (cm *ChatManager) NewPart(channelName string, userName string, reason strin
 		fmt.Print(err)
 	}
 	cm.NotifyIfChanged(channelName)
+}
+func (cm *ChatManager) NewQuit(userName string, reason string) {
+	for _, channel := range cm.channels {
+		channel.QuitUser(userName, reason)
+	}
+	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
 }
 
 func (cm *ChatManager) NewTopic(channelName string, topic string) {
@@ -208,4 +213,17 @@ func (cm *ChatManager) ChangeToPreviousChatWindow() {
 		cm.openChatWindowNumber = channelAmount - 1
 	}
 	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
+}
+
+func (cm *ChatManager) CloseOpenWindow() {
+	if cm.openChatWindowNumber != 0 {
+		if cm.openChatWindowNumber < len(cm.chatNumberToChannel)-1 {
+			cm.chatNumberToChannel = append(cm.chatNumberToChannel[0:cm.openChatWindowNumber],
+				cm.chatNumberToChannel[cm.openChatWindowNumber:]...)
+		} else {
+			cm.chatNumberToChannel = cm.chatNumberToChannel[0:cm.openChatWindowNumber]
+		}
+	} else {
+		cm.NewStatusMessage("Statuswindow cannot be closed")
+	}
 }

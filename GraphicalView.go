@@ -63,6 +63,8 @@ func NewTextarea(placeHolder string) textarea.Model {
 	t.KeyMap.InsertNewline.SetEnabled(false)
 	//t.KeyMap.LineNext = key.NewBinding(key.WithKeys("down"))
 	//t.KeyMap.LinePrevious = key.NewBinding(key.WithKeys("up"))
+
+	t.CharLimit = 0
 	t.Blur()
 	return t
 }

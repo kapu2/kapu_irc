@@ -176,6 +176,31 @@ func (sk *StateKeeper) ServerReplyParser(reply string) {
 		} else {
 			print(err.Error())
 		}
+	} else if parsedReply.command == RPL_LUSERCLIENT ||
+		parsedReply.command == RPL_LUSEROP ||
+		parsedReply.command == RPL_LUSERUNKNOWN ||
+		parsedReply.command == RPL_LUSERCHANNELS ||
+		parsedReply.command == RPL_LUSERME ||
+		parsedReply.command == RPL_ADMINME ||
+		parsedReply.command == RPL_ADMINLOC2 ||
+		parsedReply.command == RPL_ADMINEMAIL ||
+		parsedReply.command == RPL_TRYAGAIN ||
+		parsedReply.command == RPL_LOCALUSERS ||
+		parsedReply.command == RPL_GLOBALUSERS ||
+		parsedReply.command == RPL_MOTD ||
+		parsedReply.command == RPL_MOTDSTART ||
+		parsedReply.command == RPL_ENDOFMOTD {
+		// a bunch of messages sent on server connection, we don't need to care what they are
+		err = NumericReplyValidityCheck(&parsedReply)
+		if err == nil {
+			if len(parsedReply.parameters) == 2 {
+				sk.cm.NewStatusMessage(parsedReply.parameters[1])
+			} else {
+				print(fmt.Errorf("error: RPL_NAMREPLY reply, amount of parameters expected: 3 got %d", len(parsedReply.parameters)))
+			}
+		} else {
+			print(err.Error())
+		}
 	} else {
 		// unhandled commands
 		// most of them are decent error replies, so lets just show them on statuswindow

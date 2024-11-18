@@ -70,3 +70,7 @@ func (cc *StatusChat) GetUsers() string {
 func (cc *StatusChat) GetName() string {
 	return "?StatusWindow" //TODO: need to make these unique somehow
 }
+
+func (cc *StatusChat) CanBeClosed(string) bool {
+	return false
+}

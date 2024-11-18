@@ -76,3 +76,7 @@ func (cc *PrivateChat) GetUsers() string {
 func (cc *PrivateChat) GetName() string {
 	return cc.name
 }
+
+func (cc *PrivateChat) CanBeClosed(myNick string) bool {
+	return true
+}

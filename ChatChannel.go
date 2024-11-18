@@ -181,3 +181,9 @@ func (cc *ChatChannel) GetInfo() string {
 func (cc *ChatChannel) GetName() string {
 	return cc.name
 }
+
+func (cc *ChatChannel) CanBeClosed(myNick string) bool {
+	// we have to part the channel first, before closing window
+	_, exists := cc.users[myNick]
+	return !exists
+}

@@ -67,6 +67,15 @@ func (cm *ChatManager) NewJoin(channelName string, userName string) {
 		if err != nil {
 			fmt.Print(err)
 		}
+		if userName == cm.myNick {
+			// change window to it, because it is our own join
+			nr, err := cm.ChannelNameToWindowNumber(channelName)
+			if err == nil {
+				cm.openChatWindowNumber = nr
+			} else {
+				panic(err)
+			}
+		}
 	} else {
 		panic(fmt.Sprintf("panic: user %s joining channel %s (a channel we are not in, and user that is not us)", userName, channelName))
 	}
@@ -142,7 +151,17 @@ func (cm *ChatManager) NewPrivMsg(targets []string, source string, msg string) {
 			} else {
 				channel, ok := cm.channels[target]
 				if ok {
-					channel.AddPrivMsg(msg, source)
+					if source == cm.myNick {
+						_, myNickInChannel := channel.users[cm.myNick]
+						if !myNickInChannel {
+							cm.NewStatusMessage("you are not in channel " + channel.name)
+						} else {
+							channel.AddPrivMsg(msg, source)
+						}
+					} else {
+						channel.AddPrivMsg(msg, source)
+					}
+
 					cm.NotifyIfChanged(channel.name)
 				} else {
 					var pc *PrivateChat
@@ -216,14 +235,34 @@ func (cm *ChatManager) ChangeToPreviousChatWindow() {
 }
 
 func (cm *ChatManager) CloseOpenWindow() {
-	if cm.openChatWindowNumber != 0 {
+	if cm.GetOpenChatWindow().CanBeClosed(cm.myNick) {
+		channelName := cm.chatNumberToChannel[cm.openChatWindowNumber].GetName()
+
 		if cm.openChatWindowNumber < len(cm.chatNumberToChannel)-1 {
 			cm.chatNumberToChannel = append(cm.chatNumberToChannel[0:cm.openChatWindowNumber],
-				cm.chatNumberToChannel[cm.openChatWindowNumber:]...)
+				cm.chatNumberToChannel[cm.openChatWindowNumber+1:]...)
 		} else {
 			cm.chatNumberToChannel = cm.chatNumberToChannel[0:cm.openChatWindowNumber]
 		}
+		// only one of these deletes do anything
+		delete(cm.channels, channelName)
+		delete(cm.privMsg, channelName)
+		cm.openChatWindowNumber--
 	} else {
-		cm.NewStatusMessage("Statuswindow cannot be closed")
+		if cm.openChatWindowNumber == 0 {
+			cm.NewStatusMessage("Statuswindow cannot be closed")
+		} else {
+			cm.NewStatusMessage("Part from channel before closing the window")
+		}
 	}
+	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
+}
+
+func (cm *ChatManager) ChannelNameToWindowNumber(channelName string) (int, error) {
+	for i, c := range cm.chatNumberToChannel {
+		if channelName == c.GetName() {
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("error: channelName %s not found", channelName)
 }

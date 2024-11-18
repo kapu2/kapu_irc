@@ -5,4 +5,5 @@ type ChatWindow interface {
 	GetInfo() string
 	GetUsers() string
 	GetName() string
+	CanBeClosed(myNick string) bool
 }

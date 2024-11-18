@@ -1,8 +1,15 @@
 package main
 
 import (
+	"strconv"
 	"testing"
 )
+
+type DummyObserver struct {
+}
+
+func (*DummyObserver) NotifyObserver(s1 string, s2 string) {
+}
 
 func TestGetConnectionInfo(t *testing.T) {
 
@@ -162,5 +169,43 @@ func TestParseIRCMessageParameters(t *testing.T) {
 	want2D = []string{string("#chan"), string(":-)")}
 	if !TwoDStringAreSame(parsedMsg.parameters, want2D) {
 		t.Fatalf("error with parameters")
+	}
+}
+
+func TestWindowClosing(t *testing.T) {
+	cm := NewChatManager()
+	d := &DummyObserver{}
+	cm.RegisterObserver(d)
+
+	cm.myNick = "myName"
+	cm.NewJoin("chan1", cm.myNick)
+	cm.NewJoin("chan2", cm.myNick)
+	cm.NewJoin("chan3", cm.myNick)
+
+	if len(cm.chatNumberToChannel) != 4 {
+		t.Fatalf("error, channel amount: " + strconv.Itoa(len(cm.chatNumberToChannel)) + " expected: 3")
+	}
+	if cm.openChatWindowNumber != 3 {
+		t.Fatalf("error, wrong window open: " + strconv.Itoa(cm.openChatWindowNumber) + " expected: 3")
+	}
+
+	cm.NewPart("chan3", cm.myNick, "")
+	cm.CloseOpenWindow()
+	if len(cm.chatNumberToChannel) != 3 {
+		t.Fatalf("error, channel amount: " + strconv.Itoa(len(cm.chatNumberToChannel)) + " expected: 2")
+	}
+	if cm.openChatWindowNumber != 2 {
+		t.Fatalf("error, wrong window open: " + strconv.Itoa(cm.openChatWindowNumber) + " expected: 2")
+	}
+
+	cm.NewJoin("chan3", cm.myNick)
+
+	if cm.openChatWindowNumber != 3 {
+		t.Fatalf("error, wrong window open: " + strconv.Itoa(cm.openChatWindowNumber) + " expected: 3")
+	}
+
+	cm.ChangeToPreviousChatWindow()
+	if cm.openChatWindowNumber != 2 {
+		t.Fatalf("error, wrong window open: " + strconv.Itoa(cm.openChatWindowNumber) + " expected: 2")
 	}
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"time"
 )
 
 const (
@@ -95,6 +97,24 @@ func (cm *ChatManager) NewQuit(userName string, reason string) {
 		channel.QuitUser(userName, reason)
 	}
 	cm.NotifyIfChanged(cm.GetOpenChatWindow().GetName())
+}
+
+func (cm *ChatManager) SelfQuit(details string) {
+	cm.ChangeOpenChatWindow(0)
+
+	cm.NewStatusMessage(details)
+	//countdown := 10
+	/*
+		for ; countdown >= 0; countdown-- {
+			countDownStr := "Closing in " + strconv.Itoa(countdown) + "..."
+			cm.NewStatusMessage(countDownStr)
+			cm.NotifyIfChanged(cm.chatNumberToChannel[0].GetName())
+
+			time.Sleep(time.Second)
+		}
+	*/
+	time.Sleep(3 * time.Second)
+	os.Exit(0)
 }
 
 func (cm *ChatManager) NewTopic(channelName string, topic string) {

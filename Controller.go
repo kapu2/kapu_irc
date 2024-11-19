@@ -197,6 +197,13 @@ func (controller *Controller) HandleInternalCommand(cmd string) {
 		} else {
 			controller.modelInterface.NewStatusMessage("/part must be used on a channel")
 		}
+	} else if command == "/quit" {
+		_, reason, _ := strings.Cut(cmd, " ")
+		msg := IRCMessage{}
+		msg.command = "QUIT"
+		msg.parameters = append(msg.parameters, reason)
+		stringMsg := IRCMessageToString(msg)
+		controller.messagesToSend <- []byte(stringMsg)
 	}
 }
 
